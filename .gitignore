@@ -1,0 +1,17 @@
+*.d
+*.crf
+*.o
+*.htm
+*.axf
+*.lnp
+*.map
+*.hex
+*.lst
+*.s
+*.bak
+*.dep
+*.uvgui.*
+*.uvopt
+*.uvproj
+*.iex
+*.tmp
