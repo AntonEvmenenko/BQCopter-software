@@ -6,6 +6,8 @@ const int PWM_FREQUENCY = 400; // hz
 
 void ESC_init(void) 
 {
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+	
 	GPIO_PinRemapConfig(GPIO_FullRemap_TIM2, ENABLE);
 	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
