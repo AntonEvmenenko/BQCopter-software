@@ -3,7 +3,7 @@
 void SPI_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-  SPI_InitTypeDef SPI_InitStructure;
+	SPI_InitTypeDef SPI_InitStructure;
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
@@ -36,5 +36,5 @@ void SPI_transfer(uint8_t data)
 	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
 	SPI_I2S_SendData(SPI1, data);
 	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-  SPI_I2S_ReceiveData(SPI1);
+	SPI_I2S_ReceiveData(SPI1);
 }

@@ -1,7 +1,13 @@
 #include "NRF24L.h"
 
+#include <stdlib.h>
+
 uint8_t PTX;
 uint8_t payload;
+
+uint8_t state = 0;
+uint8_t currentByte = 0;
+uint8_t* data = 0;
 
 const uint8_t W_REGISTER = 0x20;
 const uint8_t REGISTER_MASK = 0x1F;
@@ -33,17 +39,17 @@ const uint8_t W_TX_PAYLOAD = 0xA0;
 void set_CE(uint8_t value)
 {
 	if (value == 1)
-	  GPIO_SetBits(GPIOA, GPIO_Pin_3);
-  else
-	  GPIO_ResetBits(GPIOA, GPIO_Pin_3);
+		GPIO_SetBits(GPIOA, GPIO_Pin_3);
+	else
+		GPIO_ResetBits(GPIOA, GPIO_Pin_3);
 }
 
 void set_CSN(uint8_t value)
 {
 	if (value == 1)
-	  GPIO_SetBits(GPIOA, GPIO_Pin_2);
-  else
-	  GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+		GPIO_SetBits(GPIOA, GPIO_Pin_2);
+	else
+		GPIO_ResetBits(GPIOA, GPIO_Pin_2);
 }
 
 void NRF24L_transmit_sync(uint8_t* dataout, uint8_t len)
@@ -58,7 +64,7 @@ void NRF24L_write_register(uint8_t reg, uint8_t * value, uint8_t len)
 	set_CSN(0);
 	SPI_transfer(W_REGISTER | (REGISTER_MASK & reg));
 	NRF24L_transmit_sync(value, len);
-  set_CSN(1);
+	set_CSN(1);
 }
 
 void NRF24L_config_register(uint8_t reg, uint8_t value) 
@@ -66,7 +72,7 @@ void NRF24L_config_register(uint8_t reg, uint8_t value)
 	set_CSN(0);
 	SPI_transfer(W_REGISTER | (REGISTER_MASK & reg));
 	SPI_transfer(value);
-  set_CSN(1);
+	set_CSN(1);
 }
 
 void NRF24L_set_RADDR(uint8_t* adr) 
@@ -109,7 +115,8 @@ void NRF24L_config(uint8_t channel, uint8_t payload)
 
 void NRF24L_init(char* RADDR, char* TADDR, uint8_t channel, uint8_t _payload)
 {
-	payload = payload;
+	payload = _payload;
+	data = (uint8_t*)malloc(payload * sizeof(uint8_t));
 	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	
@@ -140,17 +147,17 @@ void NRF24L_transfer_sync(uint8_t* dataout, uint8_t* datain, uint8_t len){
 
 void NRF24L_get_data(uint8_t* data) 
 {
-  set_CSN(0);
+	set_CSN(0);
 	SPI_transfer(R_RX_PAYLOAD);
-  NRF24L_transfer_sync(data,data,payload);
-  set_CSN(1);
+	NRF24L_transfer_sync(data,data,payload);
+	set_CSN(1);
 	NRF24L_config_register(STATUS, (1<<RX_DR));
 }
 
 void NRF24L_read_register(uint8_t reg, uint8_t * value, uint8_t len)
 {
     set_CSN(0);
-		SPI_transfer(R_REGISTER | (REGISTER_MASK & reg));
+	SPI_transfer(R_REGISTER | (REGISTER_MASK & reg));
     NRF24L_transfer_sync(value,value,len);
     set_CSN(1);
 }
@@ -170,10 +177,9 @@ int NRF24L_rx_fifo_empty(void){
 
 int NRF24L_data_ready(void) 
 {
-	uint8_t status = NRF24L_get_status();
-	status = status;
-  if ( status & (1 << RX_DR) ) return 1;
-  return !NRF24L_rx_fifo_empty();
+	uint8_t status = NRF24L_get_status(); 
+	if ( status & (1 << RX_DR) ) return 1;
+	return !NRF24L_rx_fifo_empty();
 }
 
 void NRF24L_power_up_tx(void)
@@ -184,26 +190,91 @@ void NRF24L_power_up_tx(void)
 
 void NRF24L_send(uint8_t* value) 
 {
-    uint8_t status = NRF24L_get_status();
+	uint8_t status = NRF24L_get_status();
 
-    while (PTX) 
+	while (PTX) 
+	{
+		status = NRF24L_get_status();
+		if((status & ((1 << TX_DS)  | (1 << MAX_RT))))
 		{
-	    status = NRF24L_get_status();
-	    if((status & ((1 << TX_DS)  | (1 << MAX_RT))))
-			{
-		    PTX = 0;
-		    break;
-	    }
-    }                  
-		
-		set_CE(0);
-    NRF24L_power_up_tx();
-    set_CSN(0);
-		SPI_transfer(FLUSH_TX);
-    set_CSN(1);
-    set_CSN(0);  
-		SPI_transfer(W_TX_PAYLOAD);
-		NRF24L_transmit_sync(value,payload);
-    set_CSN(1);
-    set_CE(1);
+			PTX = 0;
+			break;
+		}
+	}                  
+	
+	set_CE(0);
+	NRF24L_power_up_tx();
+	set_CSN(0);
+	SPI_transfer(FLUSH_TX);
+	set_CSN(1);
+	set_CSN(0);  
+	SPI_transfer(W_TX_PAYLOAD);
+	NRF24L_transmit_sync(value,payload);
+	set_CSN(1);
+	set_CE(1);
+}
+
+void NRF24L_process_spi_interrupt(void)
+{
+	if (SPI_I2S_GetFlagStatus(SPI1,SPI_I2S_FLAG_RXNE)==SET) {
+		uint8_t byte = SPI1->DR;
+		if (state == 0) {
+			SPI1->DR = 0;
+			++state;
+		} else if (state == 1) { 
+			set_CSN(1);
+			if (byte & (1 << RX_DR)) {
+				set_CSN(0);
+				SPI1->DR = R_RX_PAYLOAD;
+				state = 4;
+			} else {
+				set_CSN(0);
+				SPI1->DR = (R_REGISTER | (REGISTER_MASK & FIFO_STATUS));
+				++state;
+			}
+		} else if (state == 2) {
+			SPI1->DR = 0;
+			++state;
+		} else if (state == 3) {
+			set_CSN(1);
+			if (!(byte & (1 << RX_EMPTY))) {
+				set_CSN(0);
+				SPI1->DR = R_RX_PAYLOAD;
+				++state;
+			} else {
+				state = 0;
+			}
+		} else if (state == 4) {
+			SPI1->DR = 0;
+			++state;
+		} else if (state == 5) {
+			data[currentByte++] = byte;
+			if (currentByte < payload) {
+				SPI1->DR = 0;
+			} else {
+				set_CSN(1);
+				set_CSN(0);
+				SPI1->DR = (W_REGISTER | (REGISTER_MASK & STATUS));
+				++state;
+			}
+		} else if (state == 6) {
+			SPI1->DR = 1 << RX_DR;
+			++state;
+		} else if (state == 7) {
+			set_CSN(1);
+			currentByte = 0;
+		}
+	}
+}
+
+uint8_t* NRF24L_get_data_interrupt(void)
+{
+	uint8_t result;
+	if (!state || state == 7) {
+		result = (state == 7) ? 1 : 0;
+		state = 0;
+		set_CSN(0);
+		SPI1->DR = (R_REGISTER | (REGISTER_MASK & STATUS));
+	}
+	return result ? data : 0;
 }

@@ -1,58 +1,121 @@
 #include "stm32f10x.h"
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
+#include "stm32f10x_tim.h"
 
 #include "L3G4200D.h"
 #include "ADXL345.h"
 #include "NRF24L.h"
+#include "ESC.h"
 
-void Soft_Delay(volatile uint32_t number)
-{
-	while(number--);
-} 
+const int PWM_MIN_SIGNAL = 700; // us
+const int PWM_MAX_SIGNAL = 2000; // us
 
-void led_init() 
+// PWM-like signal for ESC; 700 - 2000 us
+volatile int M1_POWER = PWM_MIN_SIGNAL;
+volatile int M2_POWER = PWM_MIN_SIGNAL;
+volatile int M3_POWER = PWM_MIN_SIGNAL;
+volatile int M4_POWER = PWM_MIN_SIGNAL;
+
+unsigned long ms_from_start = 0; // time from start in milliseconds
+
+float angle_x = 0, previous_angle_x = 0;
+unsigned long previous_timestamp_us = 0, dt = 0, previous_dt = 0;
+const float PI = 3.14159265359;
+float k = 90. * PI / ( 67. * 20. * 1000000. * 180. ); // correction for gyro; for anglein radians
+
+float kp = 1200, kd = 600; // PD regulator components
+
+void SysTick_init( void )
 {
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-	
-	GPIO_InitTypeDef  gpio; 
-	gpio.GPIO_Mode = GPIO_Mode_Out_PP; 
-	gpio.GPIO_Speed = GPIO_Speed_2MHz;
-	gpio.GPIO_Pin = GPIO_Pin_13;
-	GPIO_Init(GPIOC, &gpio);
+	SysTick_Config( SystemCoreClock / 1000 ); // 1ms per interrupt
+
+	// set systick interrupt priority
+	//NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4 ); // 4 bits for preemp priority 0 bit for sub priority
+	NVIC_SetPriority( SysTick_IRQn, 0 ); // i want to make sure systick has highest priority amount all other interrupts
+
+	ms_from_start = 0;
+}
+
+unsigned long get_ms_from_start( void ) {
+	return ms_from_start;
+}
+
+unsigned long get_us_from_start( void ) {
+	return ms_from_start * 1000 + 1000 - SysTick->VAL / 72;
+}
+
+void SysTick_Handler( void ) {
+	++ms_from_start;
+}
+
+void TIM3_IRQHandler( )
+{
+	TIM_ClearITPendingBit( TIM3, TIM_IT_Update );
+	TIM3->CCR3 = M1_POWER;
+	TIM3->CCR4 = M2_POWER;
+}
+
+void TIM2_IRQHandler( )
+{
+	TIM_ClearITPendingBit( TIM2, TIM_IT_Update );
+	TIM2->CCR3 = M3_POWER;
+	TIM2->CCR4 = M4_POWER;
+}
+
+float abs( float x ) {
+	return x > 0 ? x : -x;
+}
+
+int range( int x, int min, int max ) {
+	return x > max ? max : ( x < min ? min : x );
 }
 
 int main(void)
 {
+	__enable_irq();
+	ESC_init();
+	SysTick_init( );
+	I2C_init( I2C1, 200000 );
+	setupL3G4200D( 2000 );
 	
-	SystemInit();
-	led_init();
-	//I2C_init(I2C1, 400000);
-	//setupL3G4200D(2000);
-	//setupADXL345();
-	char raddr[5] = "serv2";
-	char taddr[5] = "serv1";
-	NRF24L_init(raddr, taddr, 90, 1);
-	
-	
-	int16_t x = 0;
-	int16_t y = 0;
-	int16_t z = 0;
-	uint8_t a = 0;
+	int16_t gyro_x, gyro_y, gyro_z;
+	int16_t calibration_iterations_count = 500;
+	int16_t calibration_counter = calibration_iterations_count;
+	uint8_t calibration = 1;
+	int32_t gyro_x_sum = 0;
+	float gyro_x_correction = 0;
 	
 	while(1)
-	{
-		//GPIO_SetBits(GPIOC, GPIO_Pin_13);
-		//Soft_Delay(0x00000FF);
-		/*GPIO_ResetBits(GPIOC, GPIO_Pin_13);
-		Soft_Delay(0x000FFFFF);
-		*/
-		//getGyroValues(&x, &y, &z);
-		//getAccelValues(&x, &y, &z);
-		
-		if (NRF24L_data_ready()) 
-		{
-			NRF24L_get_data(&a);
+	{		
+		getGyroValues( &gyro_x, &gyro_y, &gyro_z );
+				
+		if ( calibration ) {
+			gyro_x_sum += gyro_x;
+			
+			if ( calibration_counter == 0 ) {
+				calibration = 0;
+				
+				gyro_x_correction = gyro_x_sum / (float)calibration_iterations_count;
+			}
+			
+			--calibration_counter;
+		} else {
+			unsigned long timestamp_us = get_us_from_start( );
+			dt = timestamp_us - previous_timestamp_us;
+			previous_timestamp_us = timestamp_us;
+			
+			if ( dt > 100000 ) {
+				dt = previous_dt;
+			}	
+			
+			previous_angle_x = angle_x;
+			angle_x += ( k * dt * ( gyro_x - gyro_x_correction ) );
+			
+			int u = (int)(angle_x * kp + ( angle_x - previous_angle_x ) * kd / dt );
+			
+			M1_POWER = range( PWM_MIN_SIGNAL - u, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+			M2_POWER = range( PWM_MIN_SIGNAL + u, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
 		}
 	}
 }
