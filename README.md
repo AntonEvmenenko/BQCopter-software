@@ -1,1 +1,1 @@
-Code for stm32f103.
+Code for quadrocopter control board, based on STM32F103.
