@@ -15,3 +15,4 @@
 *.iex
 *.tmp
 *.__i
+!/startup_stm32f10x_md.s
