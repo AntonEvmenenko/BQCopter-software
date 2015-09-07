@@ -362,7 +362,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\ADXL345;.\I2C;.\L3G4200D;.\NRF24L;.\SPI;..\BQCopter;.\SPL;.\SPL\inc;.\SPL\src;.\ESC;.\CMSIS\CoreSupport;.\CMSIS\DeviceSupport\ST\STM32F10x</IncludePath>
+              <IncludePath>.\ADXL345;.\I2C;.\L3G4200D;.\NRF24L;.\SPI;..\BQCopter;.\SPL;.\SPL\inc;.\SPL\src;.\ESC;.\CMSIS\CoreSupport;.\CMSIS\DeviceSupport\ST\STM32F10x;.\</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
