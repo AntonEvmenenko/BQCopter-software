@@ -79,24 +79,36 @@ int main(void)
 	I2C_init( I2C1, 200000 );
 	setupL3G4200D( 2000 );
 	
-	int16_t gyro_x, gyro_y, gyro_z;
+	int16_t gyro_x = 0, gyro_y = 0, gyro_z = 0;
 	int16_t calibration_iterations_count = 500;
 	int16_t calibration_counter = calibration_iterations_count;
 	uint8_t calibration = 1;
-	int32_t gyro_x_sum = 0;
-	float gyro_x_correction = 0;
+	uint16_t bad_values_counter = 1000;
+	int32_t gyro_x_sum = 0, gyro_y_sum = 0, gyro_z_sum = 0;
+	float gyro_x_correction = 0, gyro_y_correction = 0, gyro_z_correction = 0;
+	
+	int a = 0;
 	
 	while(1)
 	{		
 		getGyroValues( &gyro_x, &gyro_y, &gyro_z );
+		
+		if ( bad_values_counter > 0 ) {
+			--bad_values_counter;
+			continue;
+		}
 				
 		if ( calibration ) {
 			gyro_x_sum += gyro_x;
+			gyro_y_sum += gyro_y;
+			gyro_z_sum += gyro_z;
 			
 			if ( calibration_counter == 0 ) {
 				calibration = 0;
 				
 				gyro_x_correction = gyro_x_sum / (float)calibration_iterations_count;
+				gyro_y_correction = gyro_y_sum / (float)calibration_iterations_count;
+				gyro_z_correction = gyro_z_sum / (float)calibration_iterations_count;
 			}
 			
 			--calibration_counter;
