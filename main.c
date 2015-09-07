@@ -93,8 +93,7 @@ int main(void)
 	{		
 		getGyroValues( &gyro_x, &gyro_y, &gyro_z );
 		
-		if ( bad_values_counter > 0 ) {
-			--bad_values_counter;
+		if ( ( bad_values_counter ? bad_values_counter-- : 0 ) > 0 ) {
 			continue;
 		}
 				
@@ -103,15 +102,13 @@ int main(void)
 			gyro_y_sum += gyro_y;
 			gyro_z_sum += gyro_z;
 			
-			if ( calibration_counter == 0 ) {
+			if ( !( calibration_counter ? calibration_counter-- : 0 ) ) {
 				calibration = 0;
 				
 				gyro_x_correction = gyro_x_sum / (float)calibration_iterations_count;
 				gyro_y_correction = gyro_y_sum / (float)calibration_iterations_count;
 				gyro_z_correction = gyro_z_sum / (float)calibration_iterations_count;
 			}
-			
-			--calibration_counter;
 		} else {
 			unsigned long timestamp_us = get_us_from_start( );
 			dt = timestamp_us - previous_timestamp_us;
