@@ -166,7 +166,7 @@
             <UseTargetDll>1</UseTargetDll>
             <UseExternalTool>0</UseExternalTool>
             <RunIndependent>0</RunIndependent>
-            <UpdateFlashBeforeDebugging>0</UpdateFlashBeforeDebugging>
+            <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
             <DriverSelection>4096</DriverSelection>
           </Flash1>
@@ -362,7 +362,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\ADXL345;.\I2C;.\L3G4200D;.\NRF24L;.\SPI;..\BQCopter;.\SPL;.\SPL\inc;.\SPL\src;.\ESC;.\CMSIS\CoreSupport;.\CMSIS\DeviceSupport\ST\STM32F10x;.\</IncludePath>
+              <IncludePath>.\;.\src;.\src\startups;.\lib\SPL\inc;.\lib\SPL\src;.\lib\CMSIS\CoreSupport;.\lib\CMSIS\DeviceSupport\ST\STM32F10x</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -408,7 +408,7 @@
             <File>
               <FileName>startup_stm32f10x_md.s</FileName>
               <FileType>2</FileType>
-              <FilePath>.\startup_stm32f10x_md.s</FilePath>
+              <FilePath>.\src\startups\startup_stm32f10x_md.s</FilePath>
             </File>
           </Files>
         </Group>
@@ -416,39 +416,39 @@
           <GroupName>SourceFiles</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>L3G4200D.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\L3G4200D\L3G4200D.c</FilePath>
-            </File>
-            <File>
-              <FileName>I2C.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\I2C\I2C.c</FilePath>
-            </File>
-            <File>
               <FileName>ADXL345.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\ADXL345\ADXL345.c</FilePath>
-            </File>
-            <File>
-              <FileName>NRF24L.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\NRF24L\NRF24L.c</FilePath>
-            </File>
-            <File>
-              <FileName>SPI.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\SPI\SPI.c</FilePath>
+              <FilePath>.\src\ADXL345.c</FilePath>
             </File>
             <File>
               <FileName>ESC.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\ESC\ESC.c</FilePath>
+              <FilePath>.\src\ESC.c</FilePath>
+            </File>
+            <File>
+              <FileName>I2C.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\I2C.c</FilePath>
+            </File>
+            <File>
+              <FileName>L3G4200D.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\L3G4200D.c</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>NRF24L.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\NRF24L.c</FilePath>
+            </File>
+            <File>
+              <FileName>SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\SPI.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -458,12 +458,12 @@
             <File>
               <FileName>core_cm3.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\CMSIS\CoreSupport\core_cm3.c</FilePath>
+              <FilePath>.\lib\CMSIS\CoreSupport\core_cm3.c</FilePath>
             </File>
             <File>
               <FileName>system_stm32f10x.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\CMSIS\DeviceSupport\ST\STM32F10x\system_stm32f10x.c</FilePath>
+              <FilePath>.\lib\CMSIS\DeviceSupport\ST\STM32F10x\system_stm32f10x.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -473,32 +473,32 @@
             <File>
               <FileName>stm32f10x_gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SPL\src\stm32f10x_gpio.c</FilePath>
+              <FilePath>.\lib\SPL\src\stm32f10x_gpio.c</FilePath>
             </File>
             <File>
               <FileName>stm32f10x_rcc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SPL\src\stm32f10x_rcc.c</FilePath>
+              <FilePath>.\lib\SPL\src\stm32f10x_rcc.c</FilePath>
             </File>
             <File>
               <FileName>stm32f10x_i2c.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SPL\src\stm32f10x_i2c.c</FilePath>
+              <FilePath>.\lib\SPL\src\stm32f10x_i2c.c</FilePath>
             </File>
             <File>
               <FileName>stm32f10x_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SPL\src\stm32f10x_spi.c</FilePath>
+              <FilePath>.\lib\SPL\src\stm32f10x_spi.c</FilePath>
             </File>
             <File>
               <FileName>stm32f10x_tim.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SPL\src\stm32f10x_tim.c</FilePath>
+              <FilePath>.\lib\SPL\src\stm32f10x_tim.c</FilePath>
             </File>
             <File>
               <FileName>stm32f10x_usart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SPL\src\stm32f10x_usart.c</FilePath>
+              <FilePath>.\lib\SPL\src\stm32f10x_usart.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -508,32 +508,32 @@
             <File>
               <FileName>ADXL345.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\ADXL345\ADXL345.h</FilePath>
-            </File>
-            <File>
-              <FileName>I2C.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\I2C\I2C.h</FilePath>
-            </File>
-            <File>
-              <FileName>L3G4200D.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\L3G4200D\L3G4200D.h</FilePath>
-            </File>
-            <File>
-              <FileName>SPI.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\SPI\SPI.h</FilePath>
-            </File>
-            <File>
-              <FileName>NRF24L.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\NRF24L\NRF24L.h</FilePath>
+              <FilePath>.\src\ADXL345.h</FilePath>
             </File>
             <File>
               <FileName>ESC.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\ESC\ESC.h</FilePath>
+              <FilePath>.\src\ESC.h</FilePath>
+            </File>
+            <File>
+              <FileName>I2C.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\I2C.h</FilePath>
+            </File>
+            <File>
+              <FileName>L3G4200D.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\L3G4200D.h</FilePath>
+            </File>
+            <File>
+              <FileName>NRF24L.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\NRF24L.h</FilePath>
+            </File>
+            <File>
+              <FileName>SPI.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\SPI.h</FilePath>
             </File>
           </Files>
         </Group>
