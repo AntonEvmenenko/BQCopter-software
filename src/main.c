@@ -15,7 +15,7 @@ const int PWM_MAX_SIGNAL = 2000; // us
 
 const float PI = 3.14159265359;
 const float k = 90. * PI / ( 67. * 20. * 1000000. * 180. ); // correction for gyro; for anglein radians
-const float kp = 1200, kd = 600; // PD regulator components
+const float kp = 2000, kd = 600; // PD regulator components
 const int16_t calibration_iterations_count = 500;
 const int16_t bad_values_iterations_count = 1000;
 
@@ -27,7 +27,7 @@ volatile int M4_POWER = PWM_MIN_SIGNAL;
 
 unsigned long ms_from_start = 0; // time from start in milliseconds
 
-float angle_x = 0, previous_angle_x = 0;
+float angle_x = 0, previous_angle_x = 0, angle_y = 0, previous_angle_y = 0;
 unsigned long previous_timestamp_us = 0, dt = 0, previous_dt = 0;
 int16_t gyro_x = 0, gyro_y = 0, gyro_z = 0;
 int16_t accel_x = 0, accel_y = 0, accel_z = 0;
@@ -91,12 +91,12 @@ int main(void)
 	SysTick_init( );
 	I2C_init( I2C1, 200000 );
 	setupL3G4200D( 2000 );
-	setupADXL345( );
+	//setupADXL345( );
 	
 	while(1)
 	{		
 		getGyroValues( &gyro_x, &gyro_y, &gyro_z );
-		getAccelValues( &accel_x, &accel_y, &accel_z );
+		//getAccelValues( &accel_x, &accel_y, &accel_z );
 		
 		if ( ( bad_values_counter ? bad_values_counter-- : 0 ) > 0 ) {
 			continue;
@@ -127,13 +127,19 @@ int main(void)
 				dt = previous_dt;
 			}	
 			
-			previous_angle_x = angle_x;
 			angle_x += ( k * dt * ( gyro_x - gyro_x_correction ) );
+			angle_y += ( k * dt * ( gyro_y - gyro_y_correction ) );
 			
-			int u = (int)(angle_x * kp + ( angle_x - previous_angle_x ) * kd / dt );
+			int u_x = (int)(angle_x * kp + ( angle_x - previous_angle_x ) * kd * 1000000. / (float)dt );
+			int u_y = (int)(angle_y * kp + ( angle_y - previous_angle_y ) * kd * 1000000. / (float)dt );
 			
-			M1_POWER = range( PWM_MIN_SIGNAL - u, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-			M2_POWER = range( PWM_MIN_SIGNAL + u, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+			previous_angle_x = angle_x;
+			previous_angle_y = angle_y;
+			
+			M1_POWER = range( PWM_MIN_SIGNAL - u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+			M2_POWER = range( PWM_MIN_SIGNAL + u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+			M3_POWER = range( PWM_MIN_SIGNAL - u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+			M4_POWER = range( PWM_MIN_SIGNAL + u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
 		}
 	}
 }

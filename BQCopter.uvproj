@@ -450,6 +450,11 @@
               <FileType>1</FileType>
               <FilePath>.\src\SPI.c</FilePath>
             </File>
+            <File>
+              <FileName>utils.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\utils.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -534,6 +539,11 @@
               <FileName>SPI.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\SPI.h</FilePath>
+            </File>
+            <File>
+              <FileName>utils.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\utils.h</FilePath>
             </File>
           </Files>
         </Group>
