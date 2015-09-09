@@ -8,8 +8,16 @@
 #include "NRF24L.h"
 #include "ESC.h"
 
+#include "utils.h"
+
 const int PWM_MIN_SIGNAL = 700; // us
 const int PWM_MAX_SIGNAL = 2000; // us
+
+const float PI = 3.14159265359;
+const float k = 90. * PI / ( 67. * 20. * 1000000. * 180. ); // correction for gyro; for anglein radians
+const float kp = 1200, kd = 600; // PD regulator components
+const int16_t calibration_iterations_count = 500;
+const int16_t bad_values_iterations_count = 1000;
 
 // PWM-like signal for ESC; 700 - 2000 us
 volatile int M1_POWER = PWM_MIN_SIGNAL;
@@ -21,10 +29,15 @@ unsigned long ms_from_start = 0; // time from start in milliseconds
 
 float angle_x = 0, previous_angle_x = 0;
 unsigned long previous_timestamp_us = 0, dt = 0, previous_dt = 0;
-const float PI = 3.14159265359;
-float k = 90. * PI / ( 67. * 20. * 1000000. * 180. ); // correction for gyro; for anglein radians
-
-float kp = 1200, kd = 600; // PD regulator components
+int16_t gyro_x = 0, gyro_y = 0, gyro_z = 0;
+int16_t accel_x = 0, accel_y = 0, accel_z = 0;
+int16_t calibration_counter = calibration_iterations_count;
+uint8_t calibration = 1;
+uint16_t bad_values_counter = bad_values_iterations_count;
+int32_t gyro_x_sum = 0, gyro_y_sum = 0, gyro_z_sum = 0;
+float gyro_x_correction = 0, gyro_y_correction = 0, gyro_z_correction = 0;
+unsigned long g_squared_sum = 0;
+float g_squared_average = 0;
 
 void SysTick_init( void )
 {
@@ -78,20 +91,12 @@ int main(void)
 	SysTick_init( );
 	I2C_init( I2C1, 200000 );
 	setupL3G4200D( 2000 );
-	
-	int16_t gyro_x = 0, gyro_y = 0, gyro_z = 0;
-	int16_t calibration_iterations_count = 500;
-	int16_t calibration_counter = calibration_iterations_count;
-	uint8_t calibration = 1;
-	uint16_t bad_values_counter = 1000;
-	int32_t gyro_x_sum = 0, gyro_y_sum = 0, gyro_z_sum = 0;
-	float gyro_x_correction = 0, gyro_y_correction = 0, gyro_z_correction = 0;
-	
-	int a = 0;
+	setupADXL345( );
 	
 	while(1)
 	{		
 		getGyroValues( &gyro_x, &gyro_y, &gyro_z );
+		getAccelValues( &accel_x, &accel_y, &accel_z );
 		
 		if ( ( bad_values_counter ? bad_values_counter-- : 0 ) > 0 ) {
 			continue;
@@ -102,12 +107,16 @@ int main(void)
 			gyro_y_sum += gyro_y;
 			gyro_z_sum += gyro_z;
 			
+			g_squared_sum += sqr( accel_x ) + sqr( accel_y ) + sqr( accel_z );
+			
 			if ( !( calibration_counter ? calibration_counter-- : 0 ) ) {
 				calibration = 0;
 				
 				gyro_x_correction = gyro_x_sum / (float)calibration_iterations_count;
 				gyro_y_correction = gyro_y_sum / (float)calibration_iterations_count;
 				gyro_z_correction = gyro_z_sum / (float)calibration_iterations_count;
+				
+				g_squared_average = g_squared_sum / (float)calibration_iterations_count;
 			}
 		} else {
 			unsigned long timestamp_us = get_us_from_start( );
