@@ -455,6 +455,11 @@
               <FileType>1</FileType>
               <FilePath>.\src\utils.c</FilePath>
             </File>
+            <File>
+              <FileName>HMC5883L.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\HMC5883L.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -544,6 +549,11 @@
               <FileName>utils.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\utils.h</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5883L.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\HMC5883L.h</FilePath>
             </File>
           </Files>
         </Group>
