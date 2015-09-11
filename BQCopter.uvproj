@@ -451,14 +451,14 @@
               <FilePath>.\src\SPI.c</FilePath>
             </File>
             <File>
-              <FileName>utils.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\utils.c</FilePath>
-            </File>
-            <File>
               <FileName>HMC5883L.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\HMC5883L.c</FilePath>
+            </File>
+            <File>
+              <FileName>extended_math.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\extended_math.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -546,14 +546,14 @@
               <FilePath>.\src\SPI.h</FilePath>
             </File>
             <File>
-              <FileName>utils.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\src\utils.h</FilePath>
-            </File>
-            <File>
               <FileName>HMC5883L.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\HMC5883L.h</FilePath>
+            </File>
+            <File>
+              <FileName>extended_math.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\extended_math.h</FilePath>
             </File>
           </Files>
         </Group>

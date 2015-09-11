@@ -9,7 +9,7 @@
 #include "NRF24L.h"
 #include "ESC.h"
 
-#include "utils.h"
+#include "extended_math.h"
 
 const int PWM_MIN_SIGNAL = 700; // us
 const int PWM_MAX_SIGNAL = 2000; // us
@@ -76,10 +76,6 @@ void TIM2_IRQHandler( )
     TIM_ClearITPendingBit( TIM2, TIM_IT_Update );
     TIM2->CCR3 = M3_POWER;
     TIM2->CCR4 = M4_POWER;
-}
-
-float abs( float x ) {
-    return x > 0 ? x : -x;
 }
 
 int range( int x, int min, int max ) {
