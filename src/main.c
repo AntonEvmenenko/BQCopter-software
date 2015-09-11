@@ -28,7 +28,6 @@ volatile int M4_POWER = PWM_MIN_SIGNAL;
 
 unsigned long ms_from_start = 0; // time from start in milliseconds
 
-float angle_x = 0, previous_angle_x = 0, angle_y = 0, previous_angle_y = 0;
 unsigned long previous_timestamp_us = 0, dt = 0, previous_dt = 0;
 vector3 gyroscope = { 0., 0., 0. };
 vector3 accelerometer = { 0., 0., 0. };
@@ -45,7 +44,7 @@ matrix3f DCM = { { 1., 0., 0., },
                  { 0., 1., 0., },
                  { 0., 0., 1., } };
 
-vector3f Euler_angles = { 0., 0., 0. };
+vector3f Euler_angles = { 0., 0., 0. }, Euler_angles_previous = { 0., 0., 0. };
 
 void SysTick_init( void )
 {
@@ -126,9 +125,9 @@ int main(void)
                 g_squared_average = g_squared_sum / (float)calibration_iterations_count;
             }
         } else {
-            vector3f gyroscope_corrected = { gyroscope[ 0 ] - gyroscope_correction[ 0 ],
-                                             gyroscope[ 1 ] - gyroscope_correction[ 1 ],
-                                             gyroscope[ 2 ] - gyroscope_correction[ 2 ] };
+            vector3f gyroscope_corrected = { ( gyroscope[ 0 ] - gyroscope_correction[ 0 ] ) * k,
+                                             ( gyroscope[ 1 ] - gyroscope_correction[ 1 ] ) * k,
+                                             ( gyroscope[ 2 ] - gyroscope_correction[ 2 ] ) * k };
             
             unsigned long timestamp_us = get_us_from_start( );
             dt = timestamp_us - previous_timestamp_us;
@@ -137,32 +136,28 @@ int main(void)
             if ( dt > 100000 ) {
                 dt = previous_dt;
             }	
-
-            /*
-            angle_x += ( k * dt * gyroscope_corrected[ 0 ] );
-            angle_y += ( k * dt * gyroscope_corrected[ 1 ] );
-
-            int u_x = (int)(angle_x * kp + ( angle_x - previous_angle_x ) * kd * 1000000. / ( float )dt );
-            int u_y = (int)(angle_y * kp + ( angle_y - previous_angle_y ) * kd * 1000000. / ( float )dt );
-
-            previous_angle_x = angle_x;
-            previous_angle_y = angle_y;
-
-            M1_POWER = range( PWM_MIN_SIGNAL - u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M2_POWER = range( PWM_MIN_SIGNAL + u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M3_POWER = range( PWM_MIN_SIGNAL - u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M4_POWER = range( PWM_MIN_SIGNAL + u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            */
-            
-            matrix3f rotation_matrix, delta_angle, delta_DCM;
+						
+						matrix3f rotation_matrix, delta_angle, delta_DCM;
             vector3f_to_rotation_matrix3f( rotation_matrix, gyroscope_corrected );
-            matrix3f_scalar_multiplication( delta_angle, rotation_matrix, 1000000. / ( float )dt );
+            matrix3f_scalar_multiplication( delta_angle, rotation_matrix, ( float )dt );
             matrix3f_matrix3f_multiplication( delta_DCM, DCM, delta_angle );
             matrix3f_matrix3f_sum( DCM, DCM, delta_DCM );
             
             // TODO : normalizaton
             
             DCM_to_Euler_angles( Euler_angles, Euler_angles + 1, Euler_angles + 2, DCM );
+						
+            int u_x = (int)(Euler_angles[ 0 ] * kp + ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd * 1000000. / ( float )dt );
+            int u_y = (int)(Euler_angles[ 1 ] * kp + ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd * 1000000. / ( float )dt );
+						
+						Euler_angles_previous[ 0 ] = Euler_angles[ 0 ];
+						Euler_angles_previous[ 1 ] = Euler_angles[ 1 ];
+						Euler_angles_previous[ 2 ] = Euler_angles[ 2 ];
+            
+            M1_POWER = range( PWM_MIN_SIGNAL - u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M2_POWER = range( PWM_MIN_SIGNAL + u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M3_POWER = range( PWM_MIN_SIGNAL - u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M4_POWER = range( PWM_MIN_SIGNAL + u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
         }
     }
 }

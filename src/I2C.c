@@ -20,6 +20,7 @@ void I2C_init(I2C_TypeDef* I2Cx, uint32_t I2C_ClockSpeed)
 	i2c.I2C_Ack = I2C_Ack_Enable;
 	i2c.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
 	
+	I2C_DeInit(I2C1);
 	I2C_Cmd(I2Cx, ENABLE);
 	I2C_Init(I2Cx, &i2c);
 }
