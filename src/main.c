@@ -14,9 +14,9 @@
 const int PWM_MIN_SIGNAL = 700; // us
 const int PWM_MAX_SIGNAL = 2000; // us
 
-
 const float k = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for anglein radians
-const float kp = 2000, kd = 600; // PD regulator components
+const float kp_rp = 2000, kd_rp = 600; // PD regulator components for roll and pitch
+const float kp_y = 2000, kd_y = 600; // PD regulator components for yaw
 const int16_t calibration_iterations_count = 500;
 const int16_t bad_values_iterations_count = 1000;
 
@@ -150,17 +150,19 @@ int main(void)
             
             DCM_to_Euler_angles( Euler_angles, Euler_angles + 1, Euler_angles + 2, DCM );
 						
-            int u_x = (int)(Euler_angles[ 0 ] * kp + ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd / dt_s );
-            int u_y = (int)(Euler_angles[ 1 ] * kp + ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd / dt_s );
-						
+            vector3 u;
+            u[ 0 ] = (int)(Euler_angles[ 0 ] * kp_rp + ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd_rp / dt_s );
+            u[ 1 ] = (int)(Euler_angles[ 1 ] * kp_rp + ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd_rp / dt_s );
+            u[ 2 ] = (int)(Euler_angles[ 2 ] * kp_y + ( Euler_angles[ 2 ] - Euler_angles_previous[ 2 ] ) * kd_y / dt_s );
+            
             Euler_angles_previous[ 0 ] = Euler_angles[ 0 ];
             Euler_angles_previous[ 1 ] = Euler_angles[ 1 ];
             Euler_angles_previous[ 2 ] = Euler_angles[ 2 ];
             
-            M1_POWER = range( PWM_MIN_SIGNAL - u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M2_POWER = range( PWM_MIN_SIGNAL + u_x, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M3_POWER = range( PWM_MIN_SIGNAL - u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M4_POWER = range( PWM_MIN_SIGNAL + u_y, PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M1_POWER = range( PWM_MIN_SIGNAL - u[ 0 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M2_POWER = range( PWM_MIN_SIGNAL + u[ 0 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M3_POWER = range( PWM_MIN_SIGNAL - u[ 1 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M4_POWER = range( PWM_MIN_SIGNAL + u[ 1 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
         }
     }
 }
