@@ -127,8 +127,8 @@ int main(void)
             }
         } else {
             vector3f gyroscope_f = { gyroscope[ 0 ], gyroscope[ 1 ], gyroscope[ 2 ] }, gyroscope_corrected;
-            vector3f_sum( gyroscope_corrected, gyroscope_f, gyroscope_correction );
-            vector3f_scale( gyroscope_corrected, gyroscope_corrected, k );
+            VECTOR_SUM( gyroscope_f, gyroscope_correction, gyroscope_corrected );
+            VECTOR_SCALE( gyroscope_corrected, k, gyroscope_corrected );
 
             unsigned long timestamp_us = get_us_from_start( );
             dt_us = timestamp_us - previous_timestamp_us;
@@ -140,11 +140,11 @@ int main(void)
 
             dt_s = ( float )dt_us / 1000000.;
 
-            matrix3f rotation_matrix, delta_angle, delta_DCM;
+            matrix3f rotation_matrix, delta_angle, delta_DCM = { {0., 0., 0.,}, {0., 0., 0.,}, {0., 0., 0.,} };
             vector3f_to_rotation_matrix3f( rotation_matrix, gyroscope_corrected );
-            matrix3f_scale( delta_angle, rotation_matrix, dt_s );
-            matrix3f_mult( delta_DCM, DCM, delta_angle );
-            matrix3f_sum( DCM, DCM, delta_DCM );
+            MATRIX_SCALE( rotation_matrix, dt_s, delta_angle );
+            MATRIX_MULT( DCM, delta_angle, delta_DCM );
+            MATRIX_SUM( DCM, delta_DCM, DCM );
             
             // TODO : normalizaton
             
