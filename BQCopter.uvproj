@@ -362,7 +362,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\;.\src;.\src\startups;.\lib\SPL\inc;.\lib\SPL\src;.\lib\CMSIS\CoreSupport;.\lib\CMSIS\DeviceSupport\ST\STM32F10x</IncludePath>
+              <IncludePath>.\;.\src;.\src\startups;.\lib\SPL\inc;.\lib\SPL\src;.\lib\CMSIS\CoreSupport;.\lib\CMSIS\DeviceSupport\ST\STM32F10x;.\src\vendor</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -460,6 +460,11 @@
               <FileType>1</FileType>
               <FilePath>.\src\extended_math.c</FilePath>
             </File>
+            <File>
+              <FileName>MadgwickAHRS.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\vendor\MadgwickAHRS.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -554,6 +559,11 @@
               <FileName>extended_math.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\extended_math.h</FilePath>
+            </File>
+            <File>
+              <FileName>MadgwickAHRS.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\vendor\MadgwickAHRS.h</FilePath>
             </File>
           </Files>
         </Group>
