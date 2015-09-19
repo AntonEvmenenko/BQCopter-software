@@ -23,11 +23,6 @@ void vector3f_to_rotation_matrix3f( matrix3f result, vector3f vector )
     result[ 2 ][ 2 ] =  0.;
 }
 
-int16_t vector3i16_length_squared( vector3i16 vector )
-{
-    return sqr( vector[ 0 ] ) + sqr( vector[ 1 ] ) + sqr( vector[ 2 ] );
-}
-
 void DCM_to_Euler_angles( float* roll, float* pitch, float* yaw, matrix3f DCM )
 {
     *roll = atan2f( DCM[ 2 ][ 1 ], DCM[ 2 ][ 2 ] );

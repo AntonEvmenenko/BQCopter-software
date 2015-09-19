@@ -103,14 +103,14 @@ int main(void)
     while( 1 )
     {		 
         if ( NRF24L_data_ready( ) ) {
-				    NRF24L_get_data( &power );
-					  counter = 0;
-				}					
-				counter++;
-				if ( counter > 10 ) {
-					  power = 0;
-				}
-				
+            NRF24L_get_data( &power );
+            counter = 0;
+        }
+        counter++;
+        if ( counter > 10 ) {
+            power = 0;
+        }
+
         getGyroValues( gyroscope, gyroscope + 1, gyroscope + 2 );
         getAccelValues( accelerometer, accelerometer + 1, accelerometer + 2 );
         getRawCompassValues( compass, compass + 1, compass + 2 );
@@ -126,18 +126,17 @@ int main(void)
             if ( !( calibration_counter ? calibration_counter-- : 0 ) ) {
                 calibration = 0;
                 VECTOR3_SCALE( gyroscope_correction, gyroscope_sum, -1. / (float)calibration_iterations_count );
-								VECTOR3_SCALE( accelerometer_average, accelerometer_sum, 1. / (float)calibration_iterations_count );
-								float g = sqrtf( sqrf( accelerometer_average[ 0 ] ) + sqrf( accelerometer_average[ 1 ] ) + sqrf( accelerometer_average[ 2 ] ) );
-								accelerometer_correction[ 0 ] = -accelerometer_average[ 0 ];
-								accelerometer_correction[ 1 ] = -accelerometer_average[ 1 ];
-								accelerometer_correction[ 2 ] = g - accelerometer_average[ 2 ];
+                VECTOR3_SCALE( accelerometer_average, accelerometer_sum, 1. / (float)calibration_iterations_count );
+                float g_squared = 0;
+                VECTOR3_LENGTH_SQUARED( g_squared, accelerometer_average );
+                VECTOR3_SCALE( accelerometer_correction, accelerometer_average, -1 );
+                accelerometer_correction[ 2 ] += sqrtf( g_squared );
             }
         } else {
-            vector3f gyroscope_f = EMPTY_VECTOR3, gyroscope_corrected = EMPTY_VECTOR3, accelerometer_corrected = EMPTY_VECTOR3;
-            VECTOR3_COPY( gyroscope_f, gyroscope );
-            VECTOR3_SUM( gyroscope_corrected, gyroscope_f, gyroscope_correction );
+            vector3f gyroscope_corrected = EMPTY_VECTOR3, accelerometer_corrected = EMPTY_VECTOR3;
+            VECTOR3_SUM( gyroscope_corrected, gyroscope, gyroscope_correction );
             VECTOR3_SCALE( gyroscope_corrected, gyroscope_corrected, k );
-						VECTOR3_SUM( accelerometer_corrected, accelerometer, accelerometer_correction );
+            VECTOR3_SUM( accelerometer_corrected, accelerometer, accelerometer_correction );
 
             unsigned long timestamp_us = get_us_from_start( );
             dt_us = timestamp_us - previous_timestamp_us;
@@ -153,12 +152,11 @@ int main(void)
             MadgwickAHRSupdate( gyroscope_corrected[ 0 ], gyroscope_corrected[ 1 ], gyroscope_corrected[ 2 ],
                                 accelerometer_corrected[ 0 ], accelerometer_corrected[ 1 ], accelerometer_corrected[ 2 ],
                                 //( float )compass[ 0 ], ( float )compass[ 1 ], ( float )compass[ 2 ] );
-																0, 0, 0 );
+                                0, 0, 0 );
             quaternionf q = { q0, q1, q2, q3 };
             
             quaternionf_to_Euler_angles( Euler_angles, Euler_angles + 1, Euler_angles + 2, q );
-						
-						
+
             vector3i16 u = EMPTY_VECTOR3;
             u[ 0 ] = (int)(Euler_angles[ 0 ] * kp_rp + ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd_rp / dt_s );
             u[ 1 ] = (int)(Euler_angles[ 1 ] * kp_rp + ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd_rp / dt_s );
