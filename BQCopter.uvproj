@@ -441,11 +441,6 @@
               <FilePath>.\src\main.c</FilePath>
             </File>
             <File>
-              <FileName>NRF24L.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\NRF24L.c</FilePath>
-            </File>
-            <File>
               <FileName>SPI.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\SPI.c</FilePath>
@@ -464,6 +459,11 @@
               <FileName>MadgwickAHRS.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\vendor\MadgwickAHRS.c</FilePath>
+            </File>
+            <File>
+              <FileName>NRF24L.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\NRF24L.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -541,11 +541,6 @@
               <FilePath>.\src\L3G4200D.h</FilePath>
             </File>
             <File>
-              <FileName>NRF24L.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\src\NRF24L.h</FilePath>
-            </File>
-            <File>
               <FileName>SPI.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\SPI.h</FilePath>
@@ -564,6 +559,11 @@
               <FileName>MadgwickAHRS.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\vendor\MadgwickAHRS.h</FilePath>
+            </File>
+            <File>
+              <FileName>NRF24L.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\NRF24L.h</FilePath>
             </File>
           </Files>
         </Group>

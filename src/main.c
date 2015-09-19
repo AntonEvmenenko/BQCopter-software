@@ -13,7 +13,7 @@
 #include "MadgwickAHRS.h"
 
 const int PWM_MIN_SIGNAL = 700; // us
-const int PWM_MAX_SIGNAL = 2000; // us
+const int PWM_MAX_SIGNAL = 1500; // us
 
 const float k = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
 const float kp_rp = 2500, kd_rp = 600; // PD regulator components for roll and pitch
@@ -36,8 +36,10 @@ uint8_t calibration = 1;
 uint16_t bad_values_counter = bad_values_iterations_count;
 
 vector3i16 gyroscope = EMPTY_VECTOR3, accelerometer = EMPTY_VECTOR3, compass = EMPTY_VECTOR3;
-vector3i32 gyroscope_sum = EMPTY_VECTOR3;
-vector3f gyroscope_correction = EMPTY_VECTOR3, Euler_angles = EMPTY_VECTOR3, Euler_angles_previous = EMPTY_VECTOR3;
+vector3i32 gyroscope_sum = EMPTY_VECTOR3, accelerometer_sum = EMPTY_VECTOR3;
+vector3f gyroscope_correction = EMPTY_VECTOR3;
+vector3f accelerometer_average = EMPTY_VECTOR3, accelerometer_correction = EMPTY_VECTOR3;
+vector3f Euler_angles = EMPTY_VECTOR3, Euler_angles_previous = EMPTY_VECTOR3;
 
 void SysTick_init( void )
 {
@@ -80,19 +82,35 @@ int range( int x, int min, int max ) {
     return x > max ? max : ( x < min ? min : x );
 }
 
+uint8_t power = 0;  
+uint8_t counter = 0;
+float max_angle = 0.3;
+
 int main(void)
 {
     __enable_irq();
 
+    char raddr[ 5 ] = "serv2";
+    char taddr[ 5 ] = "serv1";
+    NRF24L_init( raddr, taddr, 90, 1 );
     ESC_init();
     SysTick_init( );
     I2C_init( I2C1, 200000 );
     setupL3G4200D( 2000 );
     setupADXL345( );
     setupHMC5883L( );
-
+	
     while( 1 )
     {		 
+        if ( NRF24L_data_ready( ) ) {
+            NRF24L_get_data( &power );
+            counter = 0;
+        }
+        counter++;
+        if ( counter > 10 ) {
+            power = 0;
+        }
+
         getGyroValues( gyroscope, gyroscope + 1, gyroscope + 2 );
         getAccelValues( accelerometer, accelerometer + 1, accelerometer + 2 );
         getRawCompassValues( compass, compass + 1, compass + 2 );
@@ -103,16 +121,22 @@ int main(void)
 
         if ( calibration ) {
             VECTOR3_SUM( gyroscope_sum, gyroscope_sum, gyroscope );
+					  VECTOR3_SUM( accelerometer_sum, accelerometer_sum, accelerometer );
 
             if ( !( calibration_counter ? calibration_counter-- : 0 ) ) {
                 calibration = 0;
                 VECTOR3_SCALE( gyroscope_correction, gyroscope_sum, -1. / (float)calibration_iterations_count );
+                VECTOR3_SCALE( accelerometer_average, accelerometer_sum, 1. / (float)calibration_iterations_count );
+                float g_squared = 0;
+                VECTOR3_LENGTH_SQUARED( g_squared, accelerometer_average );
+                VECTOR3_SCALE( accelerometer_correction, accelerometer_average, -1 );
+                accelerometer_correction[ 2 ] += sqrtf( g_squared );
             }
         } else {
-            vector3f gyroscope_f = EMPTY_VECTOR3, gyroscope_corrected = EMPTY_VECTOR3;
-            VECTOR3_COPY( gyroscope_f, gyroscope );
-            VECTOR3_SUM( gyroscope_corrected, gyroscope_f, gyroscope_correction );
+            vector3f gyroscope_corrected = EMPTY_VECTOR3, accelerometer_corrected = EMPTY_VECTOR3;
+            VECTOR3_SUM( gyroscope_corrected, gyroscope, gyroscope_correction );
             VECTOR3_SCALE( gyroscope_corrected, gyroscope_corrected, k );
+            VECTOR3_SUM( accelerometer_corrected, accelerometer, accelerometer_correction );
 
             unsigned long timestamp_us = get_us_from_start( );
             dt_us = timestamp_us - previous_timestamp_us;
@@ -126,8 +150,9 @@ int main(void)
             
             sampleFreq = 1. / dt_s;
             MadgwickAHRSupdate( gyroscope_corrected[ 0 ], gyroscope_corrected[ 1 ], gyroscope_corrected[ 2 ],
-                                ( float )accelerometer[ 0 ], ( float )accelerometer[ 1 ], ( float )accelerometer[ 2 ],
-                                ( float )compass[ 0 ], ( float )compass[ 1 ], ( float )compass[ 2 ] );
+                                accelerometer_corrected[ 0 ], accelerometer_corrected[ 1 ], accelerometer_corrected[ 2 ],
+                                //( float )compass[ 0 ], ( float )compass[ 1 ], ( float )compass[ 2 ] );
+                                0, 0, 0 );
             quaternionf q = { q0, q1, q2, q3 };
             
             quaternionf_to_Euler_angles( Euler_angles, Euler_angles + 1, Euler_angles + 2, q );
@@ -139,10 +164,10 @@ int main(void)
 
             VECTOR3_COPY( Euler_angles_previous, Euler_angles );
 
-            M1_POWER = range( PWM_MIN_SIGNAL - u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M2_POWER = range( PWM_MIN_SIGNAL + u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M3_POWER = range( PWM_MIN_SIGNAL - u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M4_POWER = range( PWM_MIN_SIGNAL + u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M1_POWER = range( PWM_MIN_SIGNAL + power * 3 - u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M2_POWER = range( PWM_MIN_SIGNAL + power * 3 + u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M3_POWER = range( PWM_MIN_SIGNAL + power * 3 - u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M4_POWER = range( PWM_MIN_SIGNAL + power * 3 + u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
         }
     }
 }
