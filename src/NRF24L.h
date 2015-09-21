@@ -7,6 +7,7 @@ extern const uint8_t RX_DR;
 
 void NRF24L_init(char* RADDR, char* TADDR, uint8_t channel, uint8_t _payload);
 int NRF24L_data_ready(void);
+int NRF24L_is_sending(void);
 void NRF24L_get_data(uint8_t* data);
 void NRF24L_send(uint8_t* value);
 void set_CE(uint8_t value);

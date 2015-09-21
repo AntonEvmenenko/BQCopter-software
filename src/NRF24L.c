@@ -182,6 +182,20 @@ int NRF24L_data_ready(void)
 	return !NRF24L_rx_fifo_empty();
 }
 
+int NRF24L_is_sending(void)
+{
+    uint8_t status;
+	if( PTX ){
+		status = NRF24L_get_status( );	
+		if( ( status & ( ( 1 << TX_DS ) | ( 1 << MAX_RT ) ) ) ) {
+			NRF24L_power_up_rx( );
+			return 0; 
+		}
+		return 1;
+	}
+	return 0;
+}
+
 void NRF24L_power_up_tx(void)
 {
 	PTX = 1;

@@ -18,8 +18,10 @@ const int PWM_MAX_SIGNAL = 1500; // us
 const float k = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
 const float kp_rp = 2500, kd_rp = 600; // PD regulator components for roll and pitch
 const float kp_y = 1000, kd_y = 400; // PD regulator components for yaw
+const int16_t k_throttle = 3;
 const int16_t calibration_iterations_count = 500;
 const int16_t bad_values_iterations_count = 1000;
+const int16_t NRF24L_watchdog_initial = 10;
 
 // PWM-like signal for ESC; 700 - 2000 us
 volatile int M1_POWER = PWM_MIN_SIGNAL;
@@ -34,6 +36,9 @@ float dt_s = 0.;
 int16_t calibration_counter = calibration_iterations_count;
 uint8_t calibration = 1;
 uint16_t bad_values_counter = bad_values_iterations_count;
+int16_t NRF24L_watchdog = NRF24L_watchdog_initial;
+
+uint8_t throttle = 0; 
 
 vector3i16 gyroscope = EMPTY_VECTOR3, accelerometer = EMPTY_VECTOR3, compass = EMPTY_VECTOR3;
 vector3i32 gyroscope_sum = EMPTY_VECTOR3, accelerometer_sum = EMPTY_VECTOR3;
@@ -82,10 +87,6 @@ int range( int x, int min, int max ) {
     return x > max ? max : ( x < min ? min : x );
 }
 
-uint8_t power = 0;  
-uint8_t counter = 0;
-float max_angle = 0.3;
-
 int main(void)
 {
     __enable_irq();
@@ -103,12 +104,18 @@ int main(void)
     while( 1 )
     {		 
         if ( NRF24L_data_ready( ) ) {
-            NRF24L_get_data( &power );
-            counter = 0;
+            NRF24L_get_data( &throttle );
+            NRF24L_watchdog = NRF24L_watchdog_initial;
         }
-        counter++;
-        if ( counter > 10 ) {
-            power = 0;
+
+        if ( !NRF24L_is_sending( ) ) {
+            uint8_t temp = 0;
+            NRF24L_send( &temp );
+        }
+
+        if ( !( NRF24L_watchdog ? NRF24L_watchdog-- : 0 ) ) {
+            throttle = 0;
+            NRF24L_init( raddr, taddr, 90, 1 );
         }
 
         getGyroValues( gyroscope, gyroscope + 1, gyroscope + 2 );
@@ -164,10 +171,10 @@ int main(void)
 
             VECTOR3_COPY( Euler_angles_previous, Euler_angles );
 
-            M1_POWER = range( PWM_MIN_SIGNAL + power * 3 - u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M2_POWER = range( PWM_MIN_SIGNAL + power * 3 + u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M3_POWER = range( PWM_MIN_SIGNAL + power * 3 - u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
-            M4_POWER = range( PWM_MIN_SIGNAL + power * 3 + u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M1_POWER = range( PWM_MIN_SIGNAL + throttle * k_throttle - u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M2_POWER = range( PWM_MIN_SIGNAL + throttle * k_throttle + u[ 0 ] - u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M3_POWER = range( PWM_MIN_SIGNAL + throttle * k_throttle - u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
+            M4_POWER = range( PWM_MIN_SIGNAL + throttle * k_throttle + u[ 1 ] + u[ 2 ], PWM_MIN_SIGNAL, PWM_MAX_SIGNAL );
         }
     }
 }
