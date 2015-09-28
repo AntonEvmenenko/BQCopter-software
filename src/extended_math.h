@@ -94,5 +94,7 @@ float vector3f_dot( vector3f a, vector3f b );
 void vector3f_cross( vector3f result, vector3f a, vector3f b );
 void matrix3f_normalize( matrix3f matrix );
 void quaternionf_to_Euler_angles( float* roll, float* pitch, float* yaw, quaternionf q );
+    
+int range( int x, int min, int max );
 
 #endif

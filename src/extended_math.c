@@ -73,3 +73,7 @@ void quaternionf_to_Euler_angles( float* roll, float* pitch, float* yaw, quatern
     *pitch = asinf( 2. * ( q.q0 * q.q2 - q.q3 * q.q1 ) );
     *yaw =   atan2f( 2. * ( q.q0 * q.q3 + q.q1 * q.q2 ), 1. - 2. * ( sqrf( q.q2 ) + sqrf( q.q3 ) ) );
 }
+
+int range( int x, int min, int max ) {
+    return x > max ? max : ( x < min ? min : x );
+}

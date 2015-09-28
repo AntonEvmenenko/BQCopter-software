@@ -4,7 +4,16 @@
 
 const int PWM_FREQUENCY = 400; // hz
 
-void ESC_init(void) 
+const int _PWM_MIN_SIGNAL = 700; // us
+const int _PWM_MAX_SIGNAL = 1500; // us
+
+// 700 - 2000 us
+volatile int _M1_POWER = _PWM_MIN_SIGNAL;
+volatile int _M2_POWER = _PWM_MIN_SIGNAL;
+volatile int _M3_POWER = _PWM_MIN_SIGNAL;
+volatile int _M4_POWER = _PWM_MIN_SIGNAL;
+
+void ESC_init( void ) 
 {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 	
@@ -45,4 +54,19 @@ void ESC_init(void)
 	TIM_Cmd(TIM2, ENABLE);
 	NVIC_EnableIRQ(TIM3_IRQn);
 	NVIC_EnableIRQ(TIM2_IRQn);
+}
+
+
+void TIM3_IRQHandler( void )
+{
+    TIM_ClearITPendingBit( TIM3, TIM_IT_Update );
+    TIM3->CCR3 = _M1_POWER;
+    TIM3->CCR4 = _M2_POWER;
+}
+
+void TIM2_IRQHandler( void )
+{
+    TIM_ClearITPendingBit( TIM2, TIM_IT_Update );
+    TIM2->CCR3 = _M3_POWER;
+    TIM2->CCR4 = _M4_POWER;
 }

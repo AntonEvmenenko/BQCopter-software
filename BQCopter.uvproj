@@ -465,6 +465,11 @@
               <FileType>1</FileType>
               <FilePath>.\src\NRF24L.c</FilePath>
             </File>
+            <File>
+              <FileName>time.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\time.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -564,6 +569,11 @@
               <FileName>NRF24L.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\NRF24L.h</FilePath>
+            </File>
+            <File>
+              <FileName>time.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\time.h</FilePath>
             </File>
           </Files>
         </Group>
