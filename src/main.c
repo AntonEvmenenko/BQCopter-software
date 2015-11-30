@@ -13,8 +13,8 @@
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
 const float kp_rp = 2500, kd_rp = 600; // PD regulator components for roll and pitch
-const float kp_y = 2000, kd_y = 500; // PD regulator components for yaw
-const int16_t k_u_throttle = 4, k_u_roll_pitch = 2; // factors for roll and pitch controls
+const float kp_y = 5000, kd_y = 500; // PD regulator components for yaw
+const int16_t k_u_throttle = 4, k_u_roll_pitch = 3; // factors for roll and pitch controls
 const int16_t calibration_iterations_count = 2000; // gyroscope and accelerometer calibration
 const int16_t NRF24L_watchdog_initial = 10;
 
@@ -32,6 +32,7 @@ vector3i32 gyroscope_sum = EMPTY_VECTOR3, accelerometer_sum = EMPTY_VECTOR3;
 vector3f gyroscope_correction = EMPTY_VECTOR3;
 vector3f accelerometer_average = EMPTY_VECTOR3, accelerometer_correction = EMPTY_VECTOR3;
 vector3f Euler_angles = EMPTY_VECTOR3, Euler_angles_previous = EMPTY_VECTOR3;
+
 
 int main(void)
 {
