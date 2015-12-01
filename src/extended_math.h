@@ -86,6 +86,17 @@ typedef struct
         } \
     } while( 0 )
 
+#define RANGE( result, x, min, max ) \
+    do { \
+        if (x >= max) { \
+            result = max; \
+        } else if (x <= min) { \
+            result = min; \
+        } else { \
+            result = x; \
+        } \
+    } while( 0 )
+
 int16_t sqr( int16_t x );
 float sqrf( float x );
 void vector3f_to_rotation_matrix3f( matrix3f result, vector3f vector );
@@ -94,7 +105,5 @@ float vector3f_dot( vector3f a, vector3f b );
 void vector3f_cross( vector3f result, vector3f a, vector3f b );
 void matrix3f_normalize( matrix3f matrix );
 void quaternionf_to_Euler_angles( float* roll, float* pitch, float* yaw, quaternionf q );
-    
-int range( int x, int min, int max );
 
 #endif

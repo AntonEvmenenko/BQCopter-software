@@ -12,11 +12,14 @@
 #include "MadgwickAHRS.h"
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
-const float kp_rp = 2500, kd_rp = 600; // PD regulator components for roll and pitch
-const float kp_y = 5000, kd_y = 500; // PD regulator components for yaw
+const float kp_rp = 2500, kd_rp = 600, ki_rp = 0.01; // PD regulator components for roll and pitch
+const float kp_y = 5000, kd_y = 500, ki_y = 0.01; // PD regulator components for yaw
 const int16_t k_u_throttle = 4, k_u_roll_pitch = 3; // factors for roll and pitch controls
 const int16_t calibration_iterations_count = 2000; // gyroscope and accelerometer calibration
 const int16_t NRF24L_watchdog_initial = 10;
+
+const float max_abs_integral_error = 100.;
+vector3f integral_error = EMPTY_VECTOR3;
 
 unsigned long previous_timestamp_us = 0, dt_us = 0;
 float dt_s = 0.;
@@ -111,20 +114,42 @@ int main(void)
             
             quaternionf_to_Euler_angles( Euler_angles, Euler_angles + 1, Euler_angles + 2, q );
 
-            vector3i16 u = EMPTY_VECTOR3;
-            u[ 0 ] = ( int )( Euler_angles[ 0 ] * kp_rp + ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd_rp / dt_s );
-            u[ 1 ] = ( int )( Euler_angles[ 1 ] * kp_rp + ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd_rp / dt_s );
-            u[ 2 ] = ( int )( Euler_angles[ 2 ] * kp_y + ( Euler_angles[ 2 ] - Euler_angles_previous[ 2 ] ) * kd_y / dt_s );
+            if (u_throttle) {
+                vector3i16 u = EMPTY_VECTOR3;
 
-            u[ 0 ] += u_roll * k_u_roll_pitch;            
-            u[ 1 ] += u_pitch * k_u_roll_pitch;
-            
-            VECTOR3_COPY( Euler_angles_previous, Euler_angles );
+                vector3f temp = EMPTY_VECTOR3;
+                VECTOR3_SUM(temp, temp, Euler_angles);
+                VECTOR3_SCALE(temp, temp, dt_s);
+                VECTOR3_SUM(integral_error, integral_error, temp);
+                RANGE(integral_error[0], integral_error[0], -max_abs_integral_error, max_abs_integral_error);
+                RANGE(integral_error[1], integral_error[1], -max_abs_integral_error, max_abs_integral_error);
+                RANGE(integral_error[2], integral_error[2], -max_abs_integral_error, max_abs_integral_error);
 
-            _M1_POWER = range( _PWM_MIN_SIGNAL + u_throttle * k_u_throttle - u[ 0 ] - u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL );
-            _M2_POWER = range( _PWM_MIN_SIGNAL + u_throttle * k_u_throttle + u[ 0 ] - u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL );
-            _M3_POWER = range( _PWM_MIN_SIGNAL + u_throttle * k_u_throttle - u[ 1 ] + u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL );
-            _M4_POWER = range( _PWM_MIN_SIGNAL + u_throttle * k_u_throttle + u[ 1 ] + u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL );
+                u[ 0 ] = ( int )( Euler_angles[ 0 ] * kp_rp +
+                                  ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd_rp / dt_s +
+                                  integral_error[ 0 ] * ki_rp );
+                u[ 1 ] = ( int )( Euler_angles[ 1 ] * kp_rp +
+                                  ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd_rp / dt_s +
+                                  integral_error[ 1 ] * ki_rp );
+                u[ 2 ] = ( int )( Euler_angles[ 2 ] * kp_y +
+                                  ( Euler_angles[ 2 ] - Euler_angles_previous[ 2 ] ) * kd_y / dt_s +
+                                  integral_error[ 2 ] * ki_y );
+
+                u[ 0 ] += u_roll * k_u_roll_pitch;
+                u[ 1 ] += u_pitch * k_u_roll_pitch;
+
+                VECTOR3_COPY( Euler_angles_previous, Euler_angles );
+
+                RANGE(_M1_POWER, _PWM_MIN_SIGNAL + u_throttle * k_u_throttle - u[ 0 ] - u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL);
+                RANGE(_M2_POWER, _PWM_MIN_SIGNAL + u_throttle * k_u_throttle + u[ 0 ] - u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL);
+                RANGE(_M3_POWER, _PWM_MIN_SIGNAL + u_throttle * k_u_throttle - u[ 1 ] + u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL);
+                RANGE(_M4_POWER, _PWM_MIN_SIGNAL + u_throttle * k_u_throttle + u[ 1 ] + u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL);
+            } else {
+                _M1_POWER = _PWM_MIN_SIGNAL;
+                _M2_POWER = _PWM_MIN_SIGNAL;
+                _M3_POWER = _PWM_MIN_SIGNAL;
+                _M4_POWER = _PWM_MIN_SIGNAL;
+            }
         }
     }
 }

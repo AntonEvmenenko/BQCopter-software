@@ -5,9 +5,8 @@
 const int PWM_FREQUENCY = 400; // hz
 
 const int _PWM_MIN_SIGNAL = 1000; // us
-const int _PWM_MAX_SIGNAL = 1600; // us
+const int _PWM_MAX_SIGNAL = 1700; // us
 
-// 700 - 2000 us
 volatile int _M1_POWER = _PWM_MIN_SIGNAL;
 volatile int _M2_POWER = _PWM_MIN_SIGNAL;
 volatile int _M3_POWER = _PWM_MIN_SIGNAL;
