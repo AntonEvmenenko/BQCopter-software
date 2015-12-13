@@ -12,13 +12,13 @@
 #include "MadgwickAHRS.h"
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
-const float kp_rp = 2500, kd_rp = 600, ki_rp = 0.01; // PD regulator components for roll and pitch
-const float kp_y = 5000, kd_y = 500, ki_y = 0.01; // PD regulator components for yaw
-const int16_t k_u_throttle = 4, k_u_roll_pitch = 3; // factors for roll and pitch controls
+const float kp_rp = 2500, kd_rp = 600, ki_rp = 0.; // PD regulator components for roll and pitch
+const float kp_y = 5000, kd_y = 500, ki_y = 0.; // PD regulator components for yaw
+const int16_t k_u_throttle = 4, k_u_roll_pitch = 5; // factors for roll and pitch controls
 const int16_t calibration_iterations_count = 2000; // gyroscope and accelerometer calibration
 const int16_t NRF24L_watchdog_initial = 10;
 
-const float max_abs_integral_error = 100.;
+const float max_abs_integral_error = .5;
 vector3f integral_error = EMPTY_VECTOR3;
 
 unsigned long previous_timestamp_us = 0, dt_us = 0;
