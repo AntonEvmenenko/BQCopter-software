@@ -17,6 +17,7 @@ const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyr
 const float kp_rp = 2500, kd_rp = 600, ki_rp = 0.; // PD regulator components for roll and pitch
 const float kp_y = 5000, kd_y = 500, ki_y = 0.; // PD regulator components for yaw
 const int16_t k_u_throttle = 4, k_u_roll_pitch = 5; // factors for roll and pitch controls
+const int16_t k_u_camera = 2; // factors for camera control
 const int16_t calibration_iterations_count = 2000; // gyroscope and accelerometer calibration
 const int16_t NRF24L_watchdog_initial = 10;
 
@@ -31,6 +32,7 @@ uint8_t calibration = 1;
 int16_t NRF24L_watchdog = NRF24L_watchdog_initial;
 
 int16_t u_throttle = 0, u_roll = 0, u_pitch = 0; 
+int16_t camera_control_enabled = 0;
 
 vector3i16 gyroscope = EMPTY_VECTOR3, accelerometer = EMPTY_VECTOR3, compass = EMPTY_VECTOR3;
 vector3i32 gyroscope_sum = EMPTY_VECTOR3, accelerometer_sum = EMPTY_VECTOR3;
@@ -44,7 +46,7 @@ int main(void)
     __enable_irq();
 
     char raddr[ 5 ] = "serv2", taddr[ 5 ] = "serv1";
-    NRF24L_init( raddr, taddr, 90, 3 );
+    NRF24L_init( raddr, taddr, 90, 4 );
     ESC_init( );
     UART_init();
     SysTick_init( );
@@ -58,11 +60,12 @@ int main(void)
     while( 1 )
     {		 
         if ( NRF24L_data_ready( ) ) {
-            uint8_t data[ 3 ];
+            uint8_t data[ 4 ];
             NRF24L_get_data( data );
             u_throttle = data[ 0 ];
             u_roll = data[ 1 ] - 128;
             u_pitch = data[ 2 ] - 128;
+            camera_control_enabled = data[ 3 ];
             NRF24L_watchdog = NRF24L_watchdog_initial;
         }
         
@@ -70,6 +73,7 @@ int main(void)
             u_throttle = 0;
             u_roll = 0;
             u_pitch = 0;
+            camera_control_enabled = 0;
         }
         
         getGyroValues( gyroscope, gyroscope + 1, gyroscope + 2 );
@@ -140,6 +144,11 @@ int main(void)
 
                 u[ 0 ] += u_roll * k_u_roll_pitch;
                 u[ 1 ] += u_pitch * k_u_roll_pitch;
+
+                if (camera_control_enabled) {
+                    u[ 0 ] += _positionX * k_u_camera;
+                    u[ 1 ] += _positionY * k_u_camera;
+                }
 
                 VECTOR3_COPY( Euler_angles_previous, Euler_angles );
 
