@@ -470,6 +470,11 @@
               <FileType>1</FileType>
               <FilePath>.\src\time.c</FilePath>
             </File>
+            <File>
+              <FileName>UART.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\UART.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -574,6 +579,11 @@
               <FileName>time.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\time.h</FilePath>
+            </File>
+            <File>
+              <FileName>UART.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\UART.h</FilePath>
             </File>
           </Files>
         </Group>

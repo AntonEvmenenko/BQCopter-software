@@ -2,6 +2,7 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 #include "stm32f10x_tim.h"
+#include "stm32f10x_usart.h"
 #include "time.h"
 #include "L3G4200D.h"
 #include "ADXL345.h"
@@ -10,6 +11,7 @@
 #include "ESC.h"
 #include "extended_math.h"
 #include "MadgwickAHRS.h"
+#include "UART.h"
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
 const float kp_rp = 2500, kd_rp = 600, ki_rp = 0.; // PD regulator components for roll and pitch
@@ -44,6 +46,7 @@ int main(void)
     char raddr[ 5 ] = "serv2", taddr[ 5 ] = "serv1";
     NRF24L_init( raddr, taddr, 90, 3 );
     ESC_init( );
+    UART_init();
     SysTick_init( );
     I2C_init( I2C1, 200000 );
     setupL3G4200D( 2000 );
