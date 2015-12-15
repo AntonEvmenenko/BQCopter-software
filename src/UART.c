@@ -68,8 +68,15 @@ void USART1_IRQHandler(void)
             _inputUARTBufferSize = 0;
         } else if (buffer == '\n') {
             if (_inputUARTBufferSize == 8) {
-                _positionX = hexStringToInt16(_inputUARTBuffer);
-                _positionY = hexStringToInt16(_inputUARTBuffer + 4);
+                int16_t x = hexStringToInt16(_inputUARTBuffer);
+                int16_t y = hexStringToInt16(_inputUARTBuffer + 4);
+                if (x >= -255 && x <= 255 && y >= -255 && y <= 255) {
+                    _positionX = x;
+                    _positionY = y;
+                } else {
+                    _positionX = 0;
+                    _positionY = 0;
+                }
             }
             _inputUARTBufferSize = 0;
         } else if ((buffer >= '0' && buffer <= '9') || (buffer >= 'A' && buffer <= 'F')) {

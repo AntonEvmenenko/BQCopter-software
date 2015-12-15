@@ -146,8 +146,12 @@ int main(void)
                 u[ 1 ] += u_pitch * k_u_roll_pitch;
 
                 if (camera_control_enabled) {
-                    u[ 0 ] += _positionX * k_u_camera;
-                    u[ 1 ] += _positionY * k_u_camera;
+                    float sin_cos_pi_4 = sin(PI / 4.);
+                    int16_t x = (int16_t)((float)(_positionX - _positionY)*sin_cos_pi_4);
+                    int16_t y = (int16_t)((float)(_positionX + _positionY)*sin_cos_pi_4);
+
+                    u[ 0 ] += x * k_u_camera;
+                    u[ 1 ] += y * k_u_camera;
                 }
 
                 VECTOR3_COPY( Euler_angles_previous, Euler_angles );
