@@ -2,10 +2,9 @@
 
 #include "stm32f10x_rcc.h"
 
-const unsigned maxBufferSize = 20;
-
-char _inputUARTBuffer[maxBufferSize];
+char _inputUARTBuffer[20];
 unsigned _inputUARTBufferSize = 0;
+int _gotSomething = 0;
 
 int16_t _positionX = 0;
 int16_t _positionY = 0;
@@ -55,6 +54,34 @@ int16_t hexStringToInt16(char* buffer)
     return ((b1 << 8) & 0xFF00) | ((b2) & 0x00FF);
 }
 
+void UART_read(void)
+{
+    if (_gotSomething) {
+        if (_inputUARTBufferSize == 1 && _inputUARTBuffer[0] == 'n') {
+            _positionX = 0;
+            _positionY = 0;
+        } else if (_inputUARTBufferSize == 8) {
+            int16_t x = hexStringToInt16(_inputUARTBuffer);
+            int16_t y = hexStringToInt16(_inputUARTBuffer + 4);
+            if (x >= -255 && x <= 255 && y >= -255 && y <= 255) {
+                _positionX = x;
+                _positionY = y;
+            } else {
+                _positionX = 0;
+                _positionY = 0;
+            }
+        } else {
+            _positionX = 0;
+            _positionY = 0;
+        }
+        _gotSomething = 0;
+        _inputUARTBufferSize = 0;
+    } else {
+        _positionX = 0;
+        _positionY = 0;
+    }
+}
+
 void USART1_IRQHandler(void)
 {
     if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
@@ -62,25 +89,18 @@ void USART1_IRQHandler(void)
         USART_ClearITPendingBit(USART1, USART_IT_RXNE);
         char buffer = USART_ReceiveData(USART1);
 
-        if (buffer == 'n') {
-            _positionX = 0;
-            _positionY = 0;
-            _inputUARTBufferSize = 0;
-        } else if (buffer == '\n') {
-            if (_inputUARTBufferSize == 8) {
-                int16_t x = hexStringToInt16(_inputUARTBuffer);
-                int16_t y = hexStringToInt16(_inputUARTBuffer + 4);
-                if (x >= -255 && x <= 255 && y >= -255 && y <= 255) {
-                    _positionX = x;
-                    _positionY = y;
-                } else {
-                    _positionX = 0;
-                    _positionY = 0;
+        if (!_gotSomething) {
+            if(!_inputUARTBufferSize && buffer == 'n') {
+                _inputUARTBuffer[_inputUARTBufferSize++] = buffer;
+                _gotSomething = 1;
+            } else if (_inputUARTBufferSize != 8 && buffer == '\n') {
+                _inputUARTBufferSize = 0;
+            } else if ((buffer >= '0' && buffer <= '9') || (buffer >= 'A' && buffer <= 'F')) {
+                _inputUARTBuffer[_inputUARTBufferSize++] = buffer;
+                if (_inputUARTBufferSize == 8) {
+                    _gotSomething = 1;
                 }
             }
-            _inputUARTBufferSize = 0;
-        } else if ((buffer >= '0' && buffer <= '9') || (buffer >= 'A' && buffer <= 'F')) {
-            _inputUARTBuffer[_inputUARTBufferSize++] = buffer;
         }
     }
 }

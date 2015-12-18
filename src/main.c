@@ -147,11 +147,14 @@ int main(void)
 
                 if (camera_control_enabled) {
                     float sin_cos_pi_4 = sin(PI / 4.);
+
+                    UART_read();
+
                     int16_t x = (int16_t)((float)(_positionX - _positionY)*sin_cos_pi_4);
                     int16_t y = (int16_t)((float)(_positionX + _positionY)*sin_cos_pi_4);
 
-                    u[ 0 ] += x * k_u_camera;
-                    u[ 1 ] += y * k_u_camera;
+                    u[ 0 ] += y * k_u_camera;
+                    u[ 1 ] += x * k_u_camera;
                 }
 
                 VECTOR3_COPY( Euler_angles_previous, Euler_angles );
