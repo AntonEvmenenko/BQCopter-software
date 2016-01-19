@@ -76,9 +76,6 @@ void UART_read(void)
         }
         _gotSomething = 0;
         _inputUARTBufferSize = 0;
-    } else {
-        _positionX = 0;
-        _positionY = 0;
     }
 }
 
