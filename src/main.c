@@ -154,7 +154,7 @@ int main(void)
                     int16_t y = (int16_t)((float)(_positionX + _positionY)*sin_cos_pi_4);
 
                     u[ 0 ] += y * k_u_camera;
-                    u[ 1 ] += x * k_u_camera;
+                    u[ 1 ] += -x * k_u_camera;
                 }
 
                 VECTOR3_COPY( Euler_angles_previous, Euler_angles );
