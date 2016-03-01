@@ -40,13 +40,16 @@ vector3f gyroscope_correction = EMPTY_VECTOR3;
 vector3f accelerometer_average = EMPTY_VECTOR3, accelerometer_correction = EMPTY_VECTOR3;
 vector3f Euler_angles = EMPTY_VECTOR3, Euler_angles_previous = EMPTY_VECTOR3;
 
+enum {
+    CONTROL = 0
+};
 
 int main(void)
 {
     __enable_irq();
 
     char raddr[ 5 ] = "serv2", taddr[ 5 ] = "serv1";
-    NRF24L_init( raddr, taddr, 90, 4 );
+    NRF24L_init( raddr, taddr, 90, 5 );
     ESC_init( );
     UART_init();
     SysTick_init( );
@@ -60,12 +63,14 @@ int main(void)
     while( 1 )
     {		 
         if ( NRF24L_data_ready( ) ) {
-            uint8_t data[ 4 ];
+            uint8_t data[ 5 ];
             NRF24L_get_data( data );
-            u_throttle = data[ 0 ];
-            u_roll = data[ 1 ] - 128;
-            u_pitch = data[ 2 ] - 128;
-            camera_control_enabled = data[ 3 ];
+            if ( data[0] == CONTROL ) {
+                u_throttle = data[ 1 ];
+                u_roll = data[ 2 ] - 128;
+                u_pitch = data[ 3 ] - 128;
+                camera_control_enabled = data[ 4 ];
+            }
             NRF24L_watchdog = NRF24L_watchdog_initial;
         }
         
