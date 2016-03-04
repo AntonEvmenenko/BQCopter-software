@@ -69,3 +69,11 @@ void TIM2_IRQHandler( void )
     TIM2->CCR3 = _M3_POWER;
     TIM2->CCR4 = _M4_POWER;
 }
+
+void turnMotorsOff(void)
+{
+    _M1_POWER = _PWM_MIN_SIGNAL;
+    _M2_POWER = _PWM_MIN_SIGNAL;
+    _M3_POWER = _PWM_MIN_SIGNAL;
+    _M4_POWER = _PWM_MIN_SIGNAL;
+}

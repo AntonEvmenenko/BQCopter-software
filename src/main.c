@@ -14,15 +14,13 @@
 #include "UART.h"
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
-const float kp_rp = 2500, kd_rp = 600, ki_rp = 0.; // PD regulator components for roll and pitch
-const float kp_y = 5000, kd_y = 500, ki_y = 0.; // PD regulator components for yaw
-const int16_t k_u_throttle = 4, k_u_roll_pitch = 5; // factors for roll and pitch controls
-const int16_t k_u_camera = 2; // factors for camera control
+float kp_roll = 2500, kd_roll = 600; // PD regulator components for roll
+float kp_pitch = 2500, kd_pitch = 600; // PD regulator components for pitch
+float kp_yaw = 5000, kd_yaw = 500; // PD regulator components for yaw
+int16_t k_u_throttle = 4, k_u_roll = 5, k_u_pitch = 5; // factors for roll and pitch controls
+int16_t k_u_camera = 3; // factors for camera control
 const int16_t calibration_iterations_count = 2000; // gyroscope and accelerometer calibration
 const int16_t NRF24L_watchdog_initial = 10;
-
-const float max_abs_integral_error = .5;
-vector3f integral_error = EMPTY_VECTOR3;
 
 unsigned long previous_timestamp_us = 0, dt_us = 0;
 float dt_s = 0.;
@@ -41,15 +39,55 @@ vector3f accelerometer_average = EMPTY_VECTOR3, accelerometer_correction = EMPTY
 vector3f Euler_angles = EMPTY_VECTOR3, Euler_angles_previous = EMPTY_VECTOR3;
 
 enum {
-    CONTROL = 0
+    CONTROL = 0,
+
+    C2Q_WANT_ALL = 1,
+
+    C2Q_NEW_ROLL_P = 2,
+    C2Q_NEW_ROLL_D = 3,
+    C2Q_NEW_PITCH_P = 4,
+    C2Q_NEW_PITCH_D = 5,
+    C2Q_NEW_YAW_P = 6,
+    C2Q_NEW_YAW_D = 7,
+
+    Q2C_CURRENT_ROLL_P = 8,
+    Q2C_CURRENT_ROLL_D = 9,
+    Q2C_CURRENT_PITCH_P = 10,
+    Q2C_CURRENT_PITCH_D = 11,
+    Q2C_CURRENT_YAW_P = 12,
+    Q2C_CURRENT_YAW_D = 13
 };
+
+void NRG24L_send_package(uint8_t id, float data, char* taddr)
+{
+    uint8_t buffer[ 5 ];
+    buffer[0] = id;
+    uint8_t* pointer = (uint8_t*)&data;
+    buffer[1] = pointer[0];
+    buffer[2] = pointer[1];
+    buffer[3] = pointer[2];
+    buffer[4] = pointer[3];
+    NRF24L_set_TADDR((uint8_t*)taddr);
+    NRF24L_send(buffer);
+    while (NRF24L_is_sending()){}
+}
+
+float byteArrayToFloat(uint8_t* data)
+{
+    float result;
+    uint8_t* pointer = (uint8_t*)&result;
+    for (int i = 0; i < 4; ++i) {
+        pointer[i] = data[i];
+    }
+    return result;
+}
 
 int main(void)
 {
     __enable_irq();
 
     char raddr[ 5 ] = "serv2", taddr[ 5 ] = "serv1";
-    NRF24L_init( raddr, taddr, 90, 5 );
+    NRF24L_init( raddr, 90, 5 );
     ESC_init( );
     UART_init();
     SysTick_init( );
@@ -61,7 +99,7 @@ int main(void)
     delay_ms( 500 );
     
     while( 1 )
-    {		 
+    {
         if ( NRF24L_data_ready( ) ) {
             uint8_t data[ 5 ];
             NRF24L_get_data( data );
@@ -70,6 +108,25 @@ int main(void)
                 u_roll = data[ 2 ] - 128;
                 u_pitch = data[ 3 ] - 128;
                 camera_control_enabled = data[ 4 ];
+            } else if (data[0] == C2Q_WANT_ALL) {
+                NRG24L_send_package(Q2C_CURRENT_ROLL_P, kp_roll, taddr);
+                NRG24L_send_package(Q2C_CURRENT_ROLL_D, kd_roll, taddr);
+                NRG24L_send_package(Q2C_CURRENT_PITCH_P, kp_pitch, taddr);
+                NRG24L_send_package(Q2C_CURRENT_PITCH_D, kd_pitch, taddr);
+                NRG24L_send_package(Q2C_CURRENT_YAW_P, kp_yaw, taddr);
+                NRG24L_send_package(Q2C_CURRENT_YAW_D, kd_yaw, taddr);
+            } else if (data[0] == C2Q_NEW_ROLL_P) {
+                kp_roll = byteArrayToFloat(data + 1);
+            } else if (data[0] == C2Q_NEW_ROLL_D) {
+                kd_roll = byteArrayToFloat(data + 1);
+            } else if (data[0] == C2Q_NEW_PITCH_P) {
+                kp_pitch = byteArrayToFloat(data + 1);
+            } else if (data[0] == C2Q_NEW_PITCH_D) {
+                kd_pitch = byteArrayToFloat(data + 1);
+            } else if (data[0] == C2Q_NEW_YAW_P) {
+                kp_yaw = byteArrayToFloat(data + 1);
+            } else if (data[0] == C2Q_NEW_YAW_D) {
+                kd_yaw = byteArrayToFloat(data + 1);
             }
             NRF24L_watchdog = NRF24L_watchdog_initial;
         }
@@ -129,26 +186,15 @@ int main(void)
             if (u_throttle) {
                 vector3i16 u = EMPTY_VECTOR3;
 
-                vector3f temp = EMPTY_VECTOR3;
-                VECTOR3_SUM(temp, temp, Euler_angles);
-                VECTOR3_SCALE(temp, temp, dt_s);
-                VECTOR3_SUM(integral_error, integral_error, temp);
-                RANGE(integral_error[0], integral_error[0], -max_abs_integral_error, max_abs_integral_error);
-                RANGE(integral_error[1], integral_error[1], -max_abs_integral_error, max_abs_integral_error);
-                RANGE(integral_error[2], integral_error[2], -max_abs_integral_error, max_abs_integral_error);
+                u[ 0 ] = ( int )( Euler_angles[ 0 ] * kp_roll +
+                                  ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd_roll / dt_s );
+                u[ 1 ] = ( int )( Euler_angles[ 1 ] * kp_pitch +
+                                  ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd_pitch / dt_s );
+                u[ 2 ] = ( int )( Euler_angles[ 2 ] * kp_yaw +
+                                  ( Euler_angles[ 2 ] - Euler_angles_previous[ 2 ] ) * kd_yaw / dt_s );
 
-                u[ 0 ] = ( int )( Euler_angles[ 0 ] * kp_rp +
-                                  ( Euler_angles[ 0 ] - Euler_angles_previous[ 0 ] ) * kd_rp / dt_s +
-                                  integral_error[ 0 ] * ki_rp );
-                u[ 1 ] = ( int )( Euler_angles[ 1 ] * kp_rp +
-                                  ( Euler_angles[ 1 ] - Euler_angles_previous[ 1 ] ) * kd_rp / dt_s +
-                                  integral_error[ 1 ] * ki_rp );
-                u[ 2 ] = ( int )( Euler_angles[ 2 ] * kp_y +
-                                  ( Euler_angles[ 2 ] - Euler_angles_previous[ 2 ] ) * kd_y / dt_s +
-                                  integral_error[ 2 ] * ki_y );
-
-                u[ 0 ] += u_roll * k_u_roll_pitch;
-                u[ 1 ] += u_pitch * k_u_roll_pitch;
+                u[ 0 ] += u_roll * k_u_roll;
+                u[ 1 ] += u_pitch * k_u_pitch;
 
                 if (camera_control_enabled) {
                     float sin_cos_pi_4 = sin(PI / 4.);
@@ -169,10 +215,7 @@ int main(void)
                 RANGE(_M3_POWER, _PWM_MIN_SIGNAL + u_throttle * k_u_throttle - u[ 1 ] + u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL);
                 RANGE(_M4_POWER, _PWM_MIN_SIGNAL + u_throttle * k_u_throttle + u[ 1 ] + u[ 2 ], _PWM_MIN_SIGNAL, _PWM_MAX_SIGNAL);
             } else {
-                _M1_POWER = _PWM_MIN_SIGNAL;
-                _M2_POWER = _PWM_MIN_SIGNAL;
-                _M3_POWER = _PWM_MIN_SIGNAL;
-                _M4_POWER = _PWM_MIN_SIGNAL;
+                turnMotorsOff();
             }
         }
     }

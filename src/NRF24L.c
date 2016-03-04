@@ -113,7 +113,7 @@ void NRF24L_config(uint8_t channel, uint8_t payload)
 	NRF24L_flush_rx();
 }
 
-void NRF24L_init(char* RADDR, char* TADDR, uint8_t channel, uint8_t _payload)
+void NRF24L_init(char* RADDR, uint8_t channel, uint8_t _payload)
 {
 	payload = _payload;
 	data = (uint8_t*)malloc(payload * sizeof(uint8_t));
@@ -131,7 +131,6 @@ void NRF24L_init(char* RADDR, char* TADDR, uint8_t channel, uint8_t _payload)
 	
 	SPI_init();
 	NRF24L_set_RADDR((uint8_t*)RADDR);
-	NRF24L_set_TADDR((uint8_t*)TADDR);
 	NRF24L_config(channel, payload);
 }
 
