@@ -7,11 +7,11 @@
 #include "L3G4200D.h"
 #include "ADXL345.h"
 #include "HMC5883L.h"
-#include "NRF24L.h"
 #include "ESC.h"
 #include "extended_math.h"
 #include "MadgwickAHRS.h"
 #include "UART.h"
+#include "RF24.h"
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
 float kp_roll = 2500, kd_roll = 600; // PD regulator components for roll
@@ -58,20 +58,6 @@ enum {
     Q2C_CURRENT_YAW_D = 13
 };
 
-void NRG24L_send_package(uint8_t id, float data, char* taddr)
-{
-    uint8_t buffer[ 5 ];
-    buffer[0] = id;
-    uint8_t* pointer = (uint8_t*)&data;
-    buffer[1] = pointer[0];
-    buffer[2] = pointer[1];
-    buffer[3] = pointer[2];
-    buffer[4] = pointer[3];
-    NRF24L_set_TADDR((uint8_t*)taddr);
-    NRF24L_send(buffer);
-    while (NRF24L_is_sending()){}
-}
-
 float byteArrayToFloat(uint8_t* data)
 {
     float result;
@@ -86,8 +72,6 @@ int main(void)
 {
     __enable_irq();
 
-    char raddr[ 5 ] = "serv2", taddr[ 5 ] = "serv1";
-    NRF24L_init( raddr, 90, 5 );
     ESC_init( );
     UART_init();
     SysTick_init( );
@@ -100,37 +84,8 @@ int main(void)
     
     while( 1 )
     {
-        if ( NRF24L_data_ready( ) ) {
-            uint8_t data[ 5 ];
-            NRF24L_get_data( data );
-            if ( data[0] == CONTROL ) {
-                u_throttle = data[ 1 ];
-                u_roll = data[ 2 ] - 128;
-                u_pitch = data[ 3 ] - 128;
-                camera_control_enabled = data[ 4 ];
-            } else if (data[0] == C2Q_WANT_ALL) {
-                NRG24L_send_package(Q2C_CURRENT_ROLL_P, kp_roll, taddr);
-                NRG24L_send_package(Q2C_CURRENT_ROLL_D, kd_roll, taddr);
-                NRG24L_send_package(Q2C_CURRENT_PITCH_P, kp_pitch, taddr);
-                NRG24L_send_package(Q2C_CURRENT_PITCH_D, kd_pitch, taddr);
-                NRG24L_send_package(Q2C_CURRENT_YAW_P, kp_yaw, taddr);
-                NRG24L_send_package(Q2C_CURRENT_YAW_D, kd_yaw, taddr);
-            } else if (data[0] == C2Q_NEW_ROLL_P) {
-                kp_roll = byteArrayToFloat(data + 1);
-            } else if (data[0] == C2Q_NEW_ROLL_D) {
-                kd_roll = byteArrayToFloat(data + 1);
-            } else if (data[0] == C2Q_NEW_PITCH_P) {
-                kp_pitch = byteArrayToFloat(data + 1);
-            } else if (data[0] == C2Q_NEW_PITCH_D) {
-                kd_pitch = byteArrayToFloat(data + 1);
-            } else if (data[0] == C2Q_NEW_YAW_P) {
-                kp_yaw = byteArrayToFloat(data + 1);
-            } else if (data[0] == C2Q_NEW_YAW_D) {
-                kd_yaw = byteArrayToFloat(data + 1);
-            }
-            NRF24L_watchdog = NRF24L_watchdog_initial;
-        }
         
+
         if ( !( NRF24L_watchdog ? NRF24L_watchdog-- : 0 ) ) {
             u_throttle = 0;
             u_roll = 0;

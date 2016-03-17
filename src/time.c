@@ -30,3 +30,8 @@ void delay_ms( int delay ) {
     unsigned long now = get_ms_from_start( );
     while( get_ms_from_start( ) - now < delay );
 }
+
+void delay_us( int delay ) {
+    unsigned long now = get_us_from_start( );
+    while( get_us_from_start( ) - now < delay );
+}
