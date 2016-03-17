@@ -11,8 +11,13 @@ extern volatile int _M4_POWER;
 
 void ESC_init( void );
 
-void TIM3_IRQHandler( void );
-void TIM2_IRQHandler( void );
+extern "C" {
+    void TIM3_IRQHandler( void );
+}
+
+extern "C" {
+    void TIM2_IRQHandler( void );
+}
 
 void turnMotorsOff(void);
 

@@ -4,9 +4,12 @@
 extern unsigned long ms_from_start;
 
 void SysTick_init( void );
-void SysTick_Handler( void );
 unsigned long get_ms_from_start( void );
 unsigned long get_us_from_start( void );
 void delay_ms( int delay );
+
+extern "C" {
+    void SysTick_Handler( void );
+}
 
 #endif

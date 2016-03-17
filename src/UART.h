@@ -9,6 +9,8 @@ extern int16_t _positionY;
 void UART_init(void);
 void UART_read(void);
 
-void USART1_IRQHandler(void);
+extern "C" {
+    void USART1_IRQHandler(void);
+}
 
 #endif
