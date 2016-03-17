@@ -15,5 +15,12 @@ void set_CSN(uint8_t value);
 void NRF24L_process_spi_interrupt(void);
 uint8_t* NRF24L_get_data_interrupt(void);
 void NRF24L_set_TADDR(uint8_t* adr);
+void NRF24L_power_up_rx(void);
+int NRF24L_get_TX_DS(void);
+int NRF24L_get_MAX_RT(void);
+void NRF24L_reset_MAX_RT(void);
+void NRF24L_flush_rx(void);
+void NRF24L_flush_tx(void);
+void NRF24L_reuse_tx(void);
 
 #endif

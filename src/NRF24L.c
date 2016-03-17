@@ -35,6 +35,9 @@ const uint8_t RX_ADDR_P0 = 0x0A;
 const uint8_t TX_ADDR = 0x10;
 const uint8_t FLUSH_TX = 0xE1;
 const uint8_t W_TX_PAYLOAD = 0xA0;
+const uint8_t SETUP_RETR = 0x04;
+const uint8_t RF_SETUP = 0x06;
+const uint8_t REUSE_TX_PL = 0xE3;
 
 void set_CE(uint8_t value)
 {
@@ -103,14 +106,11 @@ void NRF24L_flush_rx(void)
 	set_CSN(1);
 }
 
-void NRF24L_config(uint8_t channel, uint8_t payload) 
+void NRF24L_flush_tx(void)
 {
-	NRF24L_config_register(RF_CH, channel);
-	NRF24L_config_register(RX_PW_P0, payload);
-	NRF24L_config_register(RX_PW_P1, payload);
-
-	NRF24L_power_up_rx();
-	NRF24L_flush_rx();
+	set_CSN(0);
+	SPI_transfer(FLUSH_TX);
+	set_CSN(1);
 }
 
 void NRF24L_init(char* RADDR, uint8_t channel, uint8_t _payload)
@@ -131,7 +131,15 @@ void NRF24L_init(char* RADDR, uint8_t channel, uint8_t _payload)
 	
 	SPI_init();
 	NRF24L_set_RADDR((uint8_t*)RADDR);
-	NRF24L_config(channel, payload);
+
+	NRF24L_config_register(RF_CH, channel);
+	NRF24L_config_register(RX_PW_P0, payload);
+	NRF24L_config_register(RX_PW_P1, payload);
+	NRF24L_config_register(SETUP_RETR, 0x0F); // retransmission: 250 us delay, 15 tries
+	//NRF24L_config_register(RF_SETUP, 0x06); // 1 MHz
+
+	NRF24L_power_up_rx();
+	NRF24L_flush_rx();
 }
 
 void NRF24L_transfer_sync(uint8_t* dataout, uint8_t* datain, uint8_t len){
@@ -194,6 +202,32 @@ int NRF24L_is_sending(void)
 	}
 	return 0;
 }
+
+// packet succesfully sent
+int NRF24L_get_TX_DS(void)
+{
+    uint8_t status = NRF24L_get_status( );
+    if( status & ( 1 << TX_DS ) ) {
+        return 1;
+    }
+    return 0;
+}
+
+// limit of send attempts exceed
+int NRF24L_get_MAX_RT(void)
+{
+    uint8_t status = NRF24L_get_status( );
+    if( status & ( 1 << MAX_RT ) ) {
+        return 1;
+    }
+    return 0;
+}
+
+void NRF24L_reset_MAX_RT(void)
+{
+    NRF24L_config_register(STATUS, (1<<MAX_RT));
+}
+
 
 void NRF24L_power_up_tx(void)
 {
@@ -290,4 +324,12 @@ uint8_t* NRF24L_get_data_interrupt(void)
 		SPI1->DR = (R_REGISTER | (REGISTER_MASK & STATUS));
 	}
 	return result ? data : 0;
+}
+
+void NRF24L_reuse_tx(void)
+{
+    NRF24L_reset_MAX_RT();
+    SPI_transfer(REUSE_TX_PL);
+    set_CE(0);
+    set_CE(1);
 }
