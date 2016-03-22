@@ -1356,7 +1356,7 @@ bool RF24::isPVariant(void)
 void RF24::setAutoAck(bool enable)
 {
   if ( enable )
-    write_register(EN_AA, 0xFF);
+    write_register(EN_AA, 0x3F);
   else
     write_register(EN_AA, 0);
 }
