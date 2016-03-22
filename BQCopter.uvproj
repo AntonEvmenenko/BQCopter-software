@@ -461,11 +461,6 @@
               <FilePath>.\src\vendor\MadgwickAHRS.c</FilePath>
             </File>
             <File>
-              <FileName>NRF24L.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\NRF24L.c</FilePath>
-            </File>
-            <File>
               <FileName>time.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\time.c</FilePath>
@@ -574,11 +569,6 @@
               <FileName>MadgwickAHRS.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\src\vendor\MadgwickAHRS.h</FilePath>
-            </File>
-            <File>
-              <FileName>NRF24L.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\src\NRF24L.h</FilePath>
             </File>
             <File>
               <FileName>time.h</FileName>
