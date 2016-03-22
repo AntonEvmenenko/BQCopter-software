@@ -47,9 +47,18 @@ void RF24::csn(bool mode)
 	    _SPI.chipSelect(csn_pin);
 #endif
 
-#if !defined (RF24_LINUX)
+#if !defined (RF24_LINUX) && !defined (STM32)
 	digitalWrite(csn_pin,mode);
 	delayMicroseconds(5);
+#endif
+
+#if defined (STM32)
+	if (mode)
+		GPIO_SetBits(GPIOA, GPIO_Pin_2);
+	else
+		GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+
+    delayMicroseconds(5);
 #endif
 
 }
@@ -58,8 +67,15 @@ void RF24::csn(bool mode)
 
 void RF24::ce(bool level)
 {
-  //Allow for 3-pin use on ATTiny
-  if (ce_pin != csn_pin) digitalWrite(ce_pin,level);
+#if !defined (STM32)
+    //Allow for 3-pin use on ATTiny
+    if (ce_pin != csn_pin) digitalWrite(ce_pin,level);
+#else
+    if (level)
+		GPIO_SetBits(GPIOA, GPIO_Pin_3);
+	else
+		GPIO_ResetBits(GPIOA, GPIO_Pin_3);
+#endif
 }
 
 /****************************************************************************/
@@ -600,7 +616,7 @@ bool RF24::begin(void)
     pinMode(csn_pin,OUTPUT);
     _SPI.begin();
     csn(HIGH);
-  #else
+  #elif !defined(STM32)
     // Initialize pins
     if (ce_pin != csn_pin) pinMode(ce_pin,OUTPUT);  
   
@@ -615,6 +631,18 @@ bool RF24::begin(void)
   	#if defined (__ARDUINO_X86__)
 		delay(100);
   	#endif
+  #else
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    _SPI.begin();
+    ce(LOW);
+    csn(HIGH);
   #endif //Linux
 
   // Must allow the radio time to settle else configuration bits will not necessarily stick.
@@ -626,7 +654,7 @@ bool RF24::begin(void)
   delay( 5 ) ;
 
   // Reset CONFIG and enable 16-bit CRC.
-  write_register( CONFIG, 0b00001100 ) ;
+  write_register( CONFIG, 0x0C ) ;
 
   // Set 1500uS (minimum for 32B payload in ESB@250KBPS) timeouts, to make testing a little easier
   // WARNING: If this is ever lowered, either 250KBS mode with AA is broken or maximum packet
@@ -1063,7 +1091,7 @@ bool RF24::available(uint8_t* pipe_num)
     // If the caller wants the pipe number, include that
     if ( pipe_num ){
 	  uint8_t status = get_status();
-      *pipe_num = ( status >> RX_P_NO ) & 0b111;
+      *pipe_num = ( status >> RX_P_NO ) & 0x07;
   	}
   	return 1;
   }
@@ -1299,7 +1327,7 @@ void RF24::writeAckPayload(uint8_t pipe, const void* buf, uint8_t len)
 	endTransaction();
   #else
   beginTransaction();
-  _SPI.transfer(W_ACK_PAYLOAD | ( pipe & 0b111 ) );
+  _SPI.transfer(W_ACK_PAYLOAD | ( pipe & 0x07 ) );
 
   while ( data_len-- )
     _SPI.transfer(*current++);
@@ -1328,7 +1356,7 @@ bool RF24::isPVariant(void)
 void RF24::setAutoAck(bool enable)
 {
   if ( enable )
-    write_register(EN_AA, 0b111111);
+    write_register(EN_AA, 0xFF);
   else
     write_register(EN_AA, 0);
 }
@@ -1371,7 +1399,7 @@ bool RF24::testRPD(void)
 void RF24::setPALevel(uint8_t level)
 {
 
-  uint8_t setup = read_register(RF_SETUP) & 0b11111000;
+  uint8_t setup = read_register(RF_SETUP) & 0xF8;
 
   if(level > 3){  						// If invalid level, go to max PA
 	  level = (RF24_PA_MAX << 1) + 1;		// +1 to support the SI24R1 chip extra bit

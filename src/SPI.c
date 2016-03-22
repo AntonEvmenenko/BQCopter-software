@@ -1,7 +1,11 @@
 #include "SPI.h"
 
-void SPI_init(void)
-{
+SPI mySPI = SPI();
+
+SPI::SPI(){
+}
+
+void SPI::begin(){
 	GPIO_InitTypeDef GPIO_InitStructure;
 	SPI_InitTypeDef SPI_InitStructure;
 
@@ -31,10 +35,18 @@ void SPI_init(void)
 	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET);
 }
 
-void SPI_transfer(uint8_t data)
-{
-	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-	SPI_I2S_SendData(SPI1, data);
-	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-	SPI_I2S_ReceiveData(SPI1);
+void SPI::transfer(uint8_t* dataout, uint8_t* datain, uint8_t len){
+	uint8_t i;
+	for(i = 0;i < len;i++){
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
+		SPI_I2S_SendData(SPI1, dataout[i]);
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
+		datain[i] = SPI_I2S_ReceiveData(SPI1);
+	}
+}
+
+uint8_t SPI::transfer(uint8_t dataout){
+    uint8_t result;
+    transfer(&dataout, &result, 1);
+    return result;
 }
