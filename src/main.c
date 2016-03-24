@@ -12,6 +12,7 @@
 #include "MadgwickAHRS.h"
 #include "UART.h"
 #include "RF24.h"
+#include "CircularBuffer.h"
 
 const float k_gyroscope = 90. * PI / ( 67. * 20. * 180. ); // correction for gyro; for angle in radians
 float kp_roll = 2500, kd_roll = 600; // PD regulator components for roll
@@ -55,17 +56,24 @@ enum {
     Q2C_CURRENT_PITCH_P = 10,
     Q2C_CURRENT_PITCH_D = 11,
     Q2C_CURRENT_YAW_P = 12,
-    Q2C_CURRENT_YAW_D = 13
+    Q2C_CURRENT_YAW_D = 13,
+
+    Q2C_CURRENT_ROLL = 14,
+    Q2C_CURRENT_PITCH = 15,
+    Q2C_CURRENT_YAW = 16
 };
 
-float byteArrayToFloat(uint8_t* data)
+struct NRF24L_output_item {
+    uint8_t id;
+    float data;
+};
+
+CircularBuffer<NRF24L_output_item, 64> NRF24L_output_buffer;
+
+void NRG24L_send_package(uint8_t id, float data)
 {
-    float result;
-    uint8_t* pointer = (uint8_t*)&result;
-    for (int i = 0; i < 4; ++i) {
-        pointer[i] = data[i];
-    }
-    return result;
+    NRF24L_output_item temp = {id, data};
+    NRF24L_output_buffer.push_back(temp);
 }
 
 int main(void)
@@ -80,11 +88,69 @@ int main(void)
     setupADXL345( );
     //setupHMC5883L( );
 	
+    uint8_t addresses[][6] = {"1Node","2Node"};
+
+    RF24 radio(0, 0);
+
+    radio.begin();
+    radio.setChannel(90);
+    radio.setPALevel(RF24_PA_MAX);
+    radio.setRetries(2,15);
+    radio.enableAckPayload();
+    radio.enableDynamicPayloads();
+    radio.openWritingPipe(addresses[0]);
+    radio.openReadingPipe(1,addresses[1]);
+    radio.startListening();
+
     delay_ms( 500 );
     
+    uint8_t data[5];
+
     while( 1 )
     {
-        
+        uint8_t pipe_number;
+        if(radio.available(&pipe_number)){
+            radio.read(data, 5);
+
+            if ( data[0] == CONTROL ) {
+                u_throttle = data[ 1 ];
+                u_roll = data[ 2 ] - 128;
+                u_pitch = data[ 3 ] - 128;
+                camera_control_enabled = data[ 4 ];
+            } else if (data[0] == C2Q_WANT_ALL) {
+                NRG24L_send_package(Q2C_CURRENT_ROLL_P, kp_roll);
+                NRG24L_send_package(Q2C_CURRENT_ROLL_D, kd_roll);
+                NRG24L_send_package(Q2C_CURRENT_PITCH_P, kp_pitch);
+                NRG24L_send_package(Q2C_CURRENT_PITCH_D, kd_pitch);
+                NRG24L_send_package(Q2C_CURRENT_YAW_P, kp_yaw);
+                NRG24L_send_package(Q2C_CURRENT_YAW_D, kd_yaw);
+            } else if (data[0] == C2Q_NEW_ROLL_P) {
+                kp_roll = *((float*)(data + 1));
+            } else if (data[0] == C2Q_NEW_ROLL_D) {
+                kd_roll = *((float*)(data + 1));
+            } else if (data[0] == C2Q_NEW_PITCH_P) {
+                kp_pitch = *((float*)(data + 1));
+            } else if (data[0] == C2Q_NEW_PITCH_D) {
+                kd_pitch = *((float*)(data + 1));
+            } else if (data[0] == C2Q_NEW_YAW_P) {
+                kp_yaw = *((float*)(data + 1));
+            } else if (data[0] == C2Q_NEW_YAW_D) {
+                kd_yaw = *((float*)(data + 1));
+            }
+
+            if (NRF24L_output_buffer.get_size() > 0) {
+                NRF24L_output_item item = NRF24L_output_buffer.pop_front();
+                uint8_t* pointer = (uint8_t*)(&(item.data));
+                uint8_t buffer[] = {item.id, pointer[0], pointer[1], pointer[2], pointer[3]};
+                radio.writeAckPayload(pipe_number, buffer, 5);
+            } else {
+                NRG24L_send_package(Q2C_CURRENT_ROLL, Euler_angles[0]);
+                NRG24L_send_package(Q2C_CURRENT_PITCH, Euler_angles[1]);
+                NRG24L_send_package(Q2C_CURRENT_YAW, Euler_angles[2]);
+            }
+
+            NRF24L_watchdog = NRF24L_watchdog_initial;
+        }
 
         if ( !( NRF24L_watchdog ? NRF24L_watchdog-- : 0 ) ) {
             u_throttle = 0;
