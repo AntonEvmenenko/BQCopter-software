@@ -595,6 +595,11 @@
               <FileType>5</FileType>
               <FilePath>.\src\RF24_config.h</FilePath>
             </File>
+            <File>
+              <FileName>CircularBuffer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\CircularBuffer.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>
