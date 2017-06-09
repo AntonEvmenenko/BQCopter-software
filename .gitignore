@@ -6,3 +6,4 @@
 *.uvgui.*
 *.uvopt
 /obj/*
+/Debug/
