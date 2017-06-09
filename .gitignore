@@ -7,3 +7,4 @@
 *.uvopt
 /obj/*
 /Debug/
+/Release/
