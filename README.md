@@ -2,6 +2,11 @@
 
 Software for DIY quadcopter based on STM32. Check additional information about this project [here.](https://github.com/AntonEvmenenko/BQCopter)
 
+## Build environment:
+
+Language: C++  
+IDE: Keil µVision4
+
 ## Related repositories:
 
 [Hardware](https://github.com/AntonEvmenenko/BQCopter-hardware)  
